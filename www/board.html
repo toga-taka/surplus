@@ -6,86 +6,75 @@
 <title>Surplus Board</title>
 <style>
   :root{
-    --left: 240px;         /* 左の担当者列の幅 */
+    --left: 220px;         /* 左の担当者列の幅 */
     --col: 300px;          /* 日付列の幅 */
     --gap: 8px;
     --bd:#d1d5db;
     --muted:#6b7280;
-    --toolbarH: 56px;      /* ツールバーの高さ（上部固定） */
-    --datesH: 60px;        /* 日付ヘッダの高さ（上部固定） */
-    --laneMinH: 150px;     /* 1マスの最小高さ */
+    --toolbarH: 48px;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", Helvetica, Arial;background:#fff;}
+  body{margin:0;font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", Helvetica, Arial}
 
-  /* ツールバー（常に上固定） */
+  /* ツールバー（横スクロールしても固定） */
   .toolbar{
-    position: sticky; top:0; z-index:120;
+    position: sticky; top:0; z-index:60;
     display:flex; gap:8px; align-items:center;
     padding:10px 12px; background:#fff; border-bottom:1px solid var(--bd);
     height: var(--toolbarH);
   }
   .toolbar input, .toolbar select, .toolbar button{
-    padding:8px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff;
+    padding:6px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff;
   }
   .toolbar .grow{flex:1}
 
-  /* コンテンツ全体の余白（上に日付ヘッダの分だけ段差を確保） */
-  .wrap{
-    padding:8px;
-    padding-top: calc(var(--datesH) + 8px); /* ツールバー直下に固定の日付ヘッダが来るので、その分を空ける */
-  }
+  .wrap{padding:8px}
 
-  /* 日付ヘッダ（固定・横スクロール追従・カードより上に表示） */
+  /* 日付ヘッダ（固定） */
   .dates{
-    position: sticky; 
-    top: var(--toolbarH); 
-    z-index:110; 
-    background:#fff; 
-    border-bottom:1px solid var(--bd);
+    position: sticky; top: calc(var(--toolbarH)); z-index:50; background:#fff; border-bottom:1px solid var(--bd);
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
-    height: var(--datesH);
-    align-items:stretch;
-    /* ヘッダ上にカードが被らないように最前面に重ねる */
+    pointer-events: none;
   }
   .dates .blank{
-    position:sticky; left:0; z-index:111; background:#fff; border-right:1px solid var(--bd);
-    display:flex; align-items:center; padding:8px 10px; font-weight:700;
+    position:sticky; left:0; z-index:51; background:#fff; border-right:1px solid var(--bd); pointer-events:auto;
+    display:flex; align-items:center; padding:8px 10px; font-weight:600;
   }
   .dateHead{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:8px 10px; border-left:1px dashed var(--bd);
   }
-  .dateHead .d{ font-weight:700; }
+  .dateHead .d{ font-weight:600; }
   .dateHead .w{ color:var(--muted); font-size:12px; }
   .dateHead.sun .d, .dateHead.sun .w{ color:#dc2626; }
   .dateHead.sat .d, .dateHead.sat .w{ color:#2563eb; }
   .dateHead .sum{
-    font-size:12px; background:#f3f4f6; border:1px solid var(--bd); border-radius:999px; padding:2px 8px; white-space:nowrap;
+    font-size:12px; background:#f3f4f6; border:1px solid var(--bd); border-radius:999px; padding:2px 8px;
   }
 
   /* 行（担当者ごと） */
-  .rows{ display:flex; flex-direction:column; gap:var(--gap); }
+  .rows{ display:flex; flex-direction:column; gap:var(--gap); padding-top:6px; }
   .row{
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
     align-items: stretch;
+    border-top:1px solid var(--bd);   /* 行の上線 */
   }
+
+  /* 左：担当者（横書きに変更、上下ボタンは廃止） */
   .name{
     position: sticky; left:0; z-index:30; background:#fff;
-    padding:8px 10px; border-right:1px solid var(--bd); min-height:var(--laneMinH); 
-    display:flex; flex-direction:column; gap:6px; justify-content:flex-start;
-    border-bottom:1px solid var(--bd); /* 担当者の下線 */
+    padding:10px 10px 6px; border-right:1px solid var(--bd); min-height:48px;
+    display:flex; flex-direction:column; align-items:flex-start; gap:4px;
   }
-  .name .label{ font-weight:800; }
+  .name .label{ font-weight:700; }
   .name .tot{ font-size:12px; color:var(--muted); }
 
-  /* 各マス（境界が常に見えるよう白背景+枠線） */
+  /* 各マス */
   .lane{
     position:relative;
-    min-height:var(--laneMinH); padding:8px; border:1px solid var(--bd); border-radius:10px; background:#fff;
+    min-height:140px; padding:8px; border:1px solid var(--bd); border-radius:10px; background:#fff;
   }
   .laneSum{
     position:absolute; top:6px; right:8px;
@@ -95,7 +84,7 @@
 
   /* カード */
   .card{
-    position:relative; margin-top:30px;
+    position:relative; margin-top:28px;
     border:1px solid var(--bd); border-radius:10px; padding:10px 36px 10px 28px; background:#fff;
     box-shadow:0 1px 2px rgba(0,0,0,.06);
   }
@@ -106,23 +95,24 @@
     position:absolute; right:6px; top:6px; border:1px solid var(--bd); background:#fff; border-radius:8px;
     padding:2px 8px; font-size:12px; cursor:pointer;
   }
-  .title{ font-weight:700; margin-bottom:4px; padding-right:48px; }
+  .title{ font-weight:600; margin-bottom:4px; padding-right:48px; }
   .meta{ color:var(--muted); font-size:12px; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .pills{ display:flex; gap:6px; flex-wrap:wrap; }
   .pill{
-    font-size:12px; border:1px solid var(--bd); border-radius:999px; padding:2px 8px; background:#f9fafb; white-space:nowrap;
+    font-size:12px; border:1px solid var(--bd); border-radius:999px; padding:2px 8px; background:#f9fafb;
   }
   .pill.plan{ background:#f0fdf4; border-color:#bbf7d0; }
   .pill.today{ background:#fff7ed; border-color:#fed7aa; }
   .pill.actual{ background:#eef2ff; border-color:#c7d2fe; }
   .pill.remain{ background:#fef2f2; border-color:#fecaca; }
+  .pill.contract{ background:#ecfeff; border-color:#a5f3fc; } /* 契約納期用（将来の拡張向け） */
 
   .card.dragging{ opacity:.5 }
   .placeholder{ height:56px; margin-top:8px; border:2px dashed #93c5fd; border-radius:10px; background:#eff6ff; }
 
   /* トースト */
   .toast{
-    position:fixed; right:12px; bottom:12px; z-index:130;
+    position:fixed; right:12px; bottom:12px; z-index:80;
     background:#111827; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.18);
     display:none;
   }
@@ -130,33 +120,38 @@
 
   /* 通信中オーバーレイ */
   .overlay{
-    position:fixed; inset:0; z-index:140; display:none; align-items:center; justify-content:center;
+    position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center;
     background:rgba(255,255,255,.6); backdrop-filter:saturate(1.2) blur(1.5px);
   }
   .overlay.show{ display:flex; }
   .overlay .bubble{
     background:#111827; color:#fff; padding:14px 20px; border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.25);
-    font-weight:700;
+    font-weight:600;
   }
 
-  /* 並び替え/非表示モーダル */
-  .modal{ position:fixed; inset:0; z-index:135; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.25); }
+  /* 編集モーダル */
+  .modal{ position:fixed; inset:0; z-index:85; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.25); }
   .modal.show{ display:flex; }
   .panel{
-    width:min(480px,92vw); background:#fff; border-radius:14px; border:1px solid var(--bd); padding:14px;
+    width:min(420px,92vw); background:#fff; border-radius:14px; border:1px solid var(--bd); padding:14px;
   }
   .panel h3{ margin:0 0 10px 0; }
+  .form{ display:flex; flex-direction:column; gap:10px; }
+  .form label{ font-size:12px; color:var(--muted); }
+  .form input, .form select{ width:100%; padding:8px 10px; border:1px solid var(--bd); border-radius:8px; }
+  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+  .btn{ padding:8px 12px; border:1px solid var(--bd); border-radius:8px; background:#fff; cursor:pointer; }
+  .btn.primary{ background:#2563eb; color:#fff; border-color:#2563eb; }
+
+  /* 並び替えモーダル（チェックで非表示） */
   .uList{ list-style:none; margin:0; padding:0; }
   .uList li{
-    display:grid; grid-template-columns: 1fr auto auto; align-items:center; gap:8px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:8px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff; margin-bottom:8px;
   }
   .uList li .drag{ cursor:grab; color:#6b7280; }
   .uList li[draggable="true"]{ user-select:none; }
   .uList .ghost{ opacity:.5; }
-  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
-  .btn{ padding:8px 12px; border:1px solid var(--bd); border-radius:8px; background:#fff; cursor:pointer; }
-  .btn.primary{ background:#2563eb; color:#fff; border-color:#2563eb; }
 </style>
 </head>
 <body>
@@ -168,7 +163,7 @@
       </select>
     </label>
     <button class="btn" id="reload">更新</button>
-    <button class="btn" id="openReorder">担当者並び替え / 非表示…</button>
+    <button class="btn" id="openReorder">担当者並び替え…</button>
     <div class="grow"></div>
     <span id="status" style="color:#6b7280"></span>
   </div>
@@ -181,17 +176,35 @@
   <div class="toast" id="toast">保存しました</div>
   <div class="overlay" id="overlay"><div class="bubble" id="overlayText">通信中…</div></div>
 
-  <!-- 編集モーダル -->
+  <!-- 編集モーダル（縦並び） -->
   <div class="modal" id="modal">
     <div class="panel">
       <h3>カードを編集</h3>
-      <div class="form" style="display:grid; gap:8px;">
-        <label>日付 <input type="date" id="f_date"></label>
-        <label>担当者 <select id="f_assignee"></select></label>
-        <label>計画 <input type="number" step="0.25" id="f_plan"></label>
-        <label>当日予定 <input type="number" step="0.25" id="f_today"></label>
-        <label>実績 <input type="number" step="0.25" id="f_actual"></label>
-        <label>残時間 <input type="number" step="0.25" id="f_remain"></label>
+      <div class="form">
+        <div>
+          <label for="f_date">日付</label>
+          <input type="date" id="f_date">
+        </div>
+        <div>
+          <label for="f_assignee">担当者</label>
+          <select id="f_assignee"></select>
+        </div>
+        <div>
+          <label for="f_plan">計画</label>
+          <input type="number" step="0.25" id="f_plan">
+        </div>
+        <div>
+          <label for="f_today">当日予定</label>
+          <input type="number" step="0.25" id="f_today">
+        </div>
+        <div>
+          <label for="f_actual">実績</label>
+          <input type="number" step="0.25" id="f_actual">
+        </div>
+        <div>
+          <label for="f_remain">残時間</label>
+          <input type="number" step="0.25" id="f_remain">
+        </div>
       </div>
       <div class="actions">
         <button class="btn" id="cancel">キャンセル</button>
@@ -229,6 +242,7 @@ function showOverlay(text){
 function hideOverlay(){
   el('#overlay').classList.remove('show');
 }
+
 function queryParams(){
   const u=new URL(location.href);
   return {
@@ -275,22 +289,21 @@ function buildHeaders(){
   }
 }
 
-function visibleUsers(all){
-  const hidden = loadHiddenSet();
-  return all.filter(u => !hidden.has(u.id));
-}
 function buildRows(){
   const rWrap=el('#rows');
   rWrap.innerHTML='';
   rWrap.style.setProperty('--days', String(dates.length));
 
-  const vUsers = visibleUsers(users);
-  for(let i=0;i<vUsers.length;i++){
-    const u=vUsers[i];
+  const hidden = loadUserHidden(); // Set<id>
+
+  for(let i=0;i<users.length;i++){
+    const u=users[i];
+    if(hidden.has(u.id)) continue;
+
     const row=document.createElement('div');
     row.className='row';
 
-    // 左：担当者名（横書き）+ 集計（下）
+    // 左：担当者（横書き、上下ボタン廃止）
     const name=document.createElement('div');
     name.className='name';
     name.innerHTML=`
@@ -388,15 +401,16 @@ function recalcSums(){
     const s=byDate.get(d.date)||{plan:0,today:0,actual:0};
     const b=el(`#sum-${d.date}`); if(b) b.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`;
   });
-  // 各マス
-  visibleUsers(users).forEach(u=>{
+  // 各マス・担当者合計
+  const hidden = loadUserHidden();
+  users.forEach(u=>{
+    if(hidden.has(u.id)) return;
     dates.forEach(d=>{
       const key=`${u.id}|${d.date}`;
       const s=byLane.get(key)||{plan:0,today:0,actual:0};
       const lane=document.querySelector(`.lane[data-assignee="${u.id}"][data-date="${d.date}"]`);
       if(lane){ const badge=lane.querySelector('.laneSum'); if(badge) badge.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`; }
     });
-    // 担当者合計
     const us=byUser.get(u.id)||{plan:0,today:0,actual:0};
     const lab=el(`#user-sum-${u.id}`); if(lab) lab.textContent=`計:${fmt(us.plan)} / 予:${fmt(us.today)} / 実:${fmt(us.actual)}`;
   });
@@ -502,7 +516,6 @@ function numOrNull(v){ if(v===''||v==null) return null; const n=Number(v); retur
 
 /* ====== サーバ更新（通信中オーバーレイ対応） ====== */
 async function patchCard(changes){
-  // undefined を送らない
   const payload={}; for(const k of Object.keys(changes)){ if(changes[k]!==undefined) payload[k]=changes[k]; }
   el('#status').textContent='保存中…';
   showOverlay('通信中…');
@@ -521,7 +534,7 @@ async function patchCard(changes){
   }
 }
 
-/* ====== 担当者 並び替え/非表示 ====== */
+/* ====== 並び替え/非表示（ローカル保存） ====== */
 function loadUserOrder(){
   const raw=localStorage.getItem(storageKey('userOrder'));
   if(!raw) return null;
@@ -541,28 +554,32 @@ function applyUserOrder(){
     return ia-ib;
   });
 }
-function loadHiddenSet(){
-  const raw=localStorage.getItem(storageKey('hiddenUsers'));
+function loadUserHidden(){
+  const raw=localStorage.getItem(storageKey('userHidden'));
   if(!raw) return new Set();
   try{ return new Set(JSON.parse(raw)); }catch{ return new Set(); }
 }
-function saveHiddenSet(set){
-  localStorage.setItem(storageKey('hiddenUsers'), JSON.stringify([...set]));
+function saveUserHidden(set){
+  const arr=[...set];
+  localStorage.setItem(storageKey('userHidden'), JSON.stringify(arr));
 }
+
+const reorderModal=el('#reorderModal');
 el('#openReorder').addEventListener('click', ()=>{
-  const hidden = loadHiddenSet();
   const ul=el('#uList'); ul.innerHTML='';
+  const hidden = loadUserHidden();
   for(const u of users){
     const li=document.createElement('li');
     li.setAttribute('draggable','true');
     li.dataset.id=u.id;
     li.innerHTML=`
       <span>${u.name}</span>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:${hidden.has(u.id)?'#dc2626':'#374151'}">
-        <input type="checkbox" class="chk-hide"${hidden.has(u.id)?' checked':''}> 非表示
-      </label>
-      <span class="drag" title="ドラッグで並び替え">≡</span>
-    `;
+      <span style="display:flex; align-items:center; gap:10px;">
+        <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" class="hideChk" ${hidden.has(u.id)?'checked':''}> 非表示
+        </label>
+        <span class="drag">≡</span>
+      </span>`;
     ul.appendChild(li);
   }
   setupDragList(ul);
@@ -571,20 +588,19 @@ el('#openReorder').addEventListener('click', ()=>{
 el('#reorderCancel').addEventListener('click', ()=>reorderModal.classList.remove('show'));
 el('#reorderSave').addEventListener('click', ()=>{
   const ul=el('#uList');
-  // 並び順保存
   const ids=[...ul.children].map(li=>li.dataset.id);
+  // users を ids 順に並べ替え
   const map=new Map(users.map(u=>[u.id,u]));
   users = ids.map(id=>map.get(id)).filter(Boolean);
   saveUserOrder();
-  // 非表示保存
-  const hidden=new Set();
+  // 非表示の保存
+  const hidden = new Set();
   [...ul.children].forEach(li=>{
-    const id=li.dataset.id;
-    const chk=li.querySelector('.chk-hide');
-    if(chk && chk.checked) hidden.add(id);
+    const chk=li.querySelector('.hideChk');
+    if(chk && chk.checked) hidden.add(li.dataset.id);
   });
-  saveHiddenSet(hidden);
-  // 再描画
+  saveUserHidden(hidden);
+
   buildRows(); placeCards();
   reorderModal.classList.remove('show');
 });
@@ -623,21 +639,20 @@ async function bootstrap(){
   showOverlay('読み込み中…');
   try{
     const [u, g] = await Promise.all([
-      getJSON('/notion_users.php'),                                     // 全員リスト
-      getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`) // 日付/カード
+      getJSON('/notion_users.php'), // {users:[{id,name}]}
+      getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`)
     ]);
-
-    // ユーザーは union（欠落防止）。同一IDの重複排除。
-    const m = new Map();
-    (u.users||[]).forEach(x=>m.set(x.id, {id:x.id, name:x.name}));
-    (g.users||[]).forEach(x=>m.set(x.id, {id:x.id, name:x.name}));
-    users = [...m.values()];
+    // users は grid 側が優先（id/name の確実な集合）。無ければ /notion_users.php
+    const gridUsers = (g.users && g.users.length)? g.users : [];
+    const apiUsers  = (u.users && u.users.length)? u.users : [];
+    const mergedMap = new Map([...gridUsers, ...apiUsers].map(x=>[x.id, x.name]));
+    users = [...mergedMap.entries()].map(([id,name])=>({id,name}));
 
     dates = g.dates || [];
     items = g.items || [];
     userMap = new Map(users.map(x=>[x.id, x.name]));
 
-    // 並び順適用
+    // 以前の並び順を適用
     applyUserOrder();
 
     buildHeaders();
