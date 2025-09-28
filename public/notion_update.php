@@ -1,136 +1,147 @@
 <?php
+// /home/USER/app/public/notion_update.php
 mb_internal_encoding('UTF-8');
-require __DIR__.'/../bootstrap.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+require __DIR__ . '/../bootstrap.php'; // NOTION_TOKEN / NOTION_DATABASE_ID を使います
+
 header('Content-Type: application/json; charset=utf-8');
 
-/* ===================== 共通ヘルパ ===================== */
-function notion_req($method, $url, $token, $payloadArr = null){
+/* --------------- helpers --------------- */
+function notion_req($method, $url, $token, $payload = null){
   $ch = curl_init($url);
   $hdr = [
     'Authorization: Bearer '.$token,
     'Notion-Version: 2022-06-28',
-    'Content-Type: application/json',
+    'Content-Type: application/json'
   ];
   $opt = [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => $hdr,
-    CURLOPT_CUSTOMREQUEST  => strtoupper($method),
+    CURLOPT_CUSTOMREQUEST  => $method,
   ];
-  if ($payloadArr !== null){
-    $opt[CURLOPT_POSTFIELDS] = json_encode($payloadArr, JSON_UNESCAPED_UNICODE);
+  if ($payload !== null){
+    $opt[CURLOPT_POSTFIELDS] = is_string($payload) ? $payload : json_encode($payload, JSON_UNESCAPED_UNICODE);
   }
   curl_setopt_array($ch, $opt);
   $body = curl_exec($ch);
   $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+  $err  = curl_error($ch);
   curl_close($ch);
-  return [$code, $body];
+  return [$code, $body, $err];
 }
 
-function jerr($code, $msg, $extra = []){
-  http_response_code($code);
-  echo json_encode(['status'=>$code, 'error'=>$msg] + $extra, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
+function pick_key($props, $cands, $type=null){
+  // 候補文字列に部分一致で優先マッチ。無ければ type で最初の1つを返す。
+  foreach ($cands as $w){
+    foreach ($props as $name => $p){
+      if (mb_strpos($name, $w) !== false){
+        if ($type===null || ($p['type']??null)===$type) return $name;
+      }
+    }
+  }
+  if ($type!==null){
+    foreach ($props as $name => $p){
+      if (($p['type']??null)===$type) return $name;
+    }
+  }
+  return null;
+}
+
+/* --------------- main --------------- */
+$token = getenv('NOTION_TOKEN');
+if (!$token){ http_response_code(500); echo json_encode(['status'=>500,'error'=>'NOTION_TOKEN missing']); exit; }
+
+// メソッド判定：PATCH または POST+X-HTTP-Method-Override: PATCH を受け付け
+$req_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$override   = $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? '';
+if (!($req_method==='PATCH' || ($req_method==='POST' && strtoupper($override)==='PATCH'))){
+  http_response_code(405);
+  echo json_encode(['status'=>405,'error'=>'Method Not Allowed (use PATCH or POST + X-HTTP-Method-Override: PATCH)']);
   exit;
 }
 
-/* ============== メソッド判定（PATCH/POST 両対応） ============== */
-$method = strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET');
-if (!in_array($method, ['PATCH','POST'], true)){
-  jerr(405, 'method not allowed');
+// JSON Body
+$raw = file_get_contents('php://input') ?: '';
+$data = json_decode($raw, true);
+if (!is_array($data)){
+  http_response_code(400);
+  echo json_encode(['status'=>400,'error'=>'Invalid JSON body','raw'=>$raw]);
+  exit;
 }
 
-/* ===================== 入力 ===================== */
-$raw  = file_get_contents('php://input') ?: '';
-$in   = json_decode($raw, true);
-if (!is_array($in)) jerr(400, 'invalid json');
-
-$pageId = $in['id'] ?? '';
-if (!$pageId) jerr(400, 'missing page id');
-
-/* ========= 環境変数 ========= */
-$token = getenv('NOTION_TOKEN');
-if (!$token) jerr(500, 'missing NOTION_TOKEN');
-
-/* ========= プロパティ名（あなたのDBに合わせて固定） =========
-   担当者(people) / 日付(date) / 順番(number) / 当日予定(number) / 実績(number) / 内容(title)
-   必要に応じてここを変えるだけで動きます。
-*/
-$kAssignee = '担当者';
-$kDate     = '日付';
-$kOrder    = '順番';
-$kPlan     = '当日予定';
-$kActual   = '実績';
-$kContent  = '内容';
-
-/* ===================== 反映する fields を組み立て ===================== */
-$props = [];
-$updated = [];
-
-/* 担当者 people */
-if (array_key_exists('assignee_id', $in)){
-  $pid = trim((string)$in['assignee_id']);
-  $props[$kAssignee] = ['people' => ($pid !== '') ? [['id'=>$pid]] : []];
-  $updated[] = $kAssignee;
+// 必須: id
+$page_id = trim((string)($data['id'] ?? ''));
+if ($page_id===''){
+  http_response_code(400);
+  echo json_encode(['status'=>400,'error'=>'"id" is required']);
+  exit;
 }
 
-/* 日付 date (YYYY-MM-DD) */
-if (array_key_exists('date', $in)){
-  $d = trim((string)$in['date']);
-  $props[$kDate] = ($d !== '') ? ['date'=>['start'=>$d]] : ['date'=>null];
-  $updated[] = $kDate;
+// 更新候補（どれかあればOK）
+$want = [
+  'date'        => $data['date']        ?? null,       // 'YYYY-MM-DD'
+  'assignee_id' => $data['assignee_id'] ?? null,       // Notion user id
+  'order'       => $data['order']       ?? null,       // number
+  'today_plan'  => $data['today_plan']  ?? null,       // number
+  'actual'      => $data['actual']      ?? null,       // number
+];
+
+// ページのプロパティを取得してプロパティ名を推定
+list($pc, $pb, $perr) = notion_req('GET', "https://api.notion.com/v1/pages/$page_id", $token);
+if ($pc!==200){
+  http_response_code($pc);
+  echo json_encode(['status'=>$pc,'error'=>'Failed to GET page','curl_error'=>$perr,'body'=>$pb]);
+  exit;
+}
+$page_json = json_decode($pb, true);
+$props = $page_json['properties'] ?? [];
+
+// 日本語名優先の候補
+$kDate    = pick_key($props, ['日付','Date','date'],            'date');
+$kPeople  = pick_key($props, ['担当者','社員','Assignee'],       'people');
+$kOrder   = pick_key($props, ['順番','order','Order'],           'number');
+$kPlan    = pick_key($props, ['当日予定','today','Today'],       'number');
+$kActual  = pick_key($props, ['実績','actual','Actual'],         'number');
+
+// 更新ペイロード生成
+$properties = [];
+
+if ($want['date'] && $kDate){
+  $properties[$kDate] = ['date' => ['start' => $want['date']]];
+}
+if ($want['assignee_id'] && $kPeople){
+  $properties[$kPeople] = ['people' => [['object'=>'user','id'=>$want['assignee_id']]]];
+}
+if ($want['order']!==null && $kOrder){
+  $properties[$kOrder] = ['number' => (is_numeric($want['order']) ? $want['order']+0 : null)];
+}
+if ($want['today_plan']!==null && $kPlan){
+  $properties[$kPlan] = ['number' => (is_numeric($want['today_plan']) ? $want['today_plan']+0 : null)];
+}
+if ($want['actual']!==null && $kActual){
+  $properties[$kActual] = ['number' => (is_numeric($want['actual']) ? $want['actual']+0 : null)];
 }
 
-/* 順番 number */
-if (array_key_exists('order', $in)){
-  $v = $in['order'];
-  $num = ($v === '' || $v === null) ? null : (int)$v;
-  $props[$kOrder] = ['number'=>$num];
-  $updated[] = $kOrder;
-}
-
-/* 当日予定 number（today_plan でも plan でもOK） */
-if (array_key_exists('today_plan', $in) || array_key_exists('plan', $in)){
-  $v = $in['today_plan'] ?? $in['plan'];
-  $num = ($v === '' || $v === null) ? null : (float)$v;
-  $props[$kPlan] = ['number'=>$num];
-  $updated[] = $kPlan;
-}
-
-/* 実績 number */
-if (array_key_exists('actual', $in)){
-  $v = $in['actual'];
-  $num = ($v === '' || $v === null) ? null : (float)$v;
-  $props[$kActual] = ['number'=>$num];
-  $updated[] = $kActual;
-}
-
-/* タイトル（必要な場合のみ） */
-if (array_key_exists('content', $in)){
-  $s = (string)$in['content'];
-  $props[$kContent] = [
-    'title' => ($s === '')
-      ? []   // 空にしたいなら空配列
-      : [[ 'text' => ['content'=>$s] ]]
-  ];
-  $updated[] = $kContent;
-}
-
-if (!$props){
-  jerr(400, 'no updatable fields in payload', ['payload'=>$in]);
-}
-
-/* ===================== Notion へ反映 ===================== */
-list($code, $body) = notion_req('PATCH', "https://api.notion.com/v1/pages/{$pageId}", $token, [
-  'properties' => $props,
-]);
-
-/* ===================== 応答 ===================== */
-if ($code === 200){
+if (!$properties){
+  http_response_code(400);
   echo json_encode([
-    'status'  => 200,
-    'page_id' => $pageId,
-    'updated' => $updated,
-  ], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
+    'status'=>400,
+    'error'=>'No updatable fields in request (date/assignee_id/order/today_plan/actual)',
+    'guessed_keys'=>['date'=>$kDate,'people'=>$kPeople,'order'=>$kOrder,'today_plan'=>$kPlan,'actual'=>$kActual],
+    'received'=>$want
+  ], JSON_UNESCAPED_UNICODE);
+  exit;
+}
+
+$payload = ['properties' => $properties];
+
+list($uc, $ub, $uerr) = notion_req('PATCH', "https://api.notion.com/v1/pages/$page_id", $token, $payload);
+
+http_response_code($uc);
+if ($uc===200){
+  echo json_encode(['status'=>200,'result'=>'ok','sent'=>$payload], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
 } else {
-  // Notion からのエラー内容もそのまま返す
-  jerr($code ?: 500, 'notion update failed', ['response'=>json_decode($body, true)]);
+  echo json_encode(['status'=>$uc,'error'=>'Notion PATCH failed','curl_error'=>$uerr,'payload'=>$payload,'body'=>$ub], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
 }
