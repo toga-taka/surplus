@@ -82,6 +82,14 @@
     border-radius:999px; padding:2px 8px; color:#111827; white-space:nowrap;
   }
 
+  /* ▼ 追加：担当者ごとの下線 */
+  .underline{
+    grid-column: 1 / -1;
+    height:0;
+    border-bottom:1px solid var(--bd);
+    margin:6px 0 2px;
+  }
+
   /* カード */
   .card{
     position:relative; margin-top:28px;
@@ -200,7 +208,7 @@
     </div>
   </div>
 
-  <!-- 担当者 並び替えモーダル（新規） -->
+  <!-- 担当者 並び替えモーダル（既存） -->
   <div class="modal" id="reorderModal">
     <div class="panel">
       <h3>担当者の並び替え</h3>
@@ -297,10 +305,8 @@ function buildRows(){
       <div class="label">${u.name}</div>
       <div class="tot" id="user-sum-${u.id}"></div>
     `;
-    // クリックで上下
     name.querySelector('[data-act="up"]').addEventListener('click',()=>moveUser(u.id,-1));
     name.querySelector('[data-act="down"]').addEventListener('click',()=>moveUser(u.id,+1));
-
     row.appendChild(name);
 
     // 各マス
@@ -317,6 +323,12 @@ function buildRows(){
 
       row.appendChild(lane);
     }
+
+    // ▼ 追加：担当者ごとの下線
+    const underline=document.createElement('div');
+    underline.className='underline';
+    row.appendChild(underline);
+
     rWrap.appendChild(row);
   }
 }
@@ -392,7 +404,7 @@ function recalcSums(){
     const s=byDate.get(d.date)||{plan:0,today:0,actual:0};
     const b=el(`#sum-${d.date}`); if(b) b.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`;
   });
-  // 各マス
+  // 各マス & 担当者合計
   users.forEach(u=>{
     dates.forEach(d=>{
       const key=`${u.id}|${d.date}`;
@@ -400,7 +412,6 @@ function recalcSums(){
       const lane=document.querySelector(`.lane[data-assignee="${u.id}"][data-date="${d.date}"]`);
       if(lane){ const badge=lane.querySelector('.laneSum'); if(badge) badge.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`; }
     });
-    // 担当者合計
     const us=byUser.get(u.id)||{plan:0,today:0,actual:0};
     const lab=el(`#user-sum-${u.id}`); if(lab) lab.textContent=`計:${fmt(us.plan)} / 予:${fmt(us.today)} / 実:${fmt(us.actual)}`;
   });
@@ -504,9 +515,8 @@ el('#save').addEventListener('click', async ()=>{
 function valOrEmpty(v){ return (v===''?undefined:v); }
 function numOrNull(v){ if(v===''||v==null) return null; const n=Number(v); return isNaN(n)?null:n; }
 
-/* ====== サーバ更新（通信中オーバーレイ対応） ====== */
+/* ====== サーバ更新 ====== */
 async function patchCard(changes){
-  // undefined を送らない
   const payload={}; for(const k of Object.keys(changes)){ if(changes[k]!==undefined) payload[k]=changes[k]; }
   el('#status').textContent='保存中…';
   showOverlay('通信中…');
@@ -525,8 +535,7 @@ async function patchCard(changes){
   }
 }
 
-/* ====== 担当者の並び替え ====== */
-/* ローカル保存：users の配列順を記憶 */
+/* ====== 担当者の並び替え（ローカル保存） ====== */
 function loadUserOrder(){
   const raw=localStorage.getItem(storageKey('userOrder'));
   if(!raw) return null;
@@ -556,7 +565,7 @@ function moveUser(id, dir){
   buildRows(); placeCards();
 }
 
-/* 小リストでドラッグ並び替え */
+/* 並び替えモーダル */
 const reorderModal=el('#reorderModal');
 el('#openReorder').addEventListener('click', ()=>{
   const ul=el('#uList'); ul.innerHTML='';
@@ -574,7 +583,6 @@ el('#reorderCancel').addEventListener('click', ()=>reorderModal.classList.remove
 el('#reorderSave').addEventListener('click', ()=>{
   const ul=el('#uList');
   const ids=[...ul.children].map(li=>li.dataset.id);
-  // users を ids 順に並べ替え
   const map=new Map(users.map(u=>[u.id,u]));
   users = ids.map(id=>map.get(id)).filter(Boolean);
   saveUserOrder(); buildRows(); placeCards();
@@ -607,6 +615,19 @@ function getDragAfterElement(container, y){
 }
 
 /* ====== 初期化 ====== */
+/* ▼ 追加：users 全員表示（APIのユーザー + itemsの担当者IDをユニオン） */
+function unionAllUsers(usersFromApi, usersFromGrid, itemsList){
+  const base = (usersFromGrid && usersFromGrid.length)? usersFromGrid : (usersFromApi||[]);
+  const map = new Map(base.map(u=>[u.id, {id:u.id, name:u.name||u.id}]));
+  for(const it of (itemsList||[])){
+    const id = it.assignee_id;
+    if(id && !map.has(id)){
+      map.set(id, {id, name: id}); // 名前が不明な場合はIDを表示
+    }
+  }
+  return Array.from(map.values());
+}
+
 async function bootstrap(){
   const qp=queryParams();
   el('#start').value = qp.start;
@@ -618,10 +639,11 @@ async function bootstrap(){
       getJSON('/notion_users.php'),
       getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`)
     ]);
-    users = (g.users && g.users.length)? g.users : (u.users || []);
+    // ▼ 変更：全員表示を保証
+    users = unionAllUsers(u.users, g.users, g.items);
     dates = g.dates || [];
     items = g.items || [];
-    userMap = new Map(users.map(x=>[x.id, x.name]));
+    userMap = new Map((u.users||users).map(x=>[x.id, x.name]));
 
     // 以前の並び順を適用
     applyUserOrder();
