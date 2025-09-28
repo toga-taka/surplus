@@ -131,15 +131,12 @@
   <label><input type="checkbox" id="compact"> コンパクト</label>
 </header>
 
-<!-- 日付ヘッダ -->
 <div class="dates" id="datesRow">
   <div class="blank"></div>
 </div>
 
-<!-- 行（担当者×日） -->
 <div id="rows"></div>
 
-<!-- 編集用ダイアログ -->
 <dialog id="editDlg">
   <form method="dialog" id="editForm">
     <div class="full"><strong id="dlgTitle"></strong></div>
@@ -306,14 +303,23 @@ function cardEl(it){
   });
   return div;
 }
+
+// =======================================================
+// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 修正箇所 1 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// =======================================================
 function placeCards(){
   // まず全laneクリア
   els('.lane').forEach(l=>l.innerHTML='');
   cardById.clear();
   // 配置
   for(const it of items){
-    const lane = document.querySelector(`.lane[data-assignee="${it.assignee_id}"][data-date="${it.date}"]`);
+    // BUGFIX: document.querySelectorだと重複担当者IDで最初の行に固まるため、
+    // rowIndexByUserマップから行を特定し、その中からlaneを絞り込む
+    const row = rowIndexByUser.get(it.assignee_id);
+    if(!row) continue;
+    const lane = row.querySelector(`.lane[data-date="${it.date}"]`);
     if(!lane) continue;
+
     const c = cardEl(it);
     lane.appendChild(c);
     cardById.set(it.id, c);
@@ -321,6 +327,10 @@ function placeCards(){
   recalcSums();
   enableLaneDnD();
 }
+// =======================================================
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 修正箇所 1 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// =======================================================
+
 
 function recalcSums(){
   // 日付ごと合計
@@ -350,6 +360,10 @@ function onCardDragStart(e){
 function onCardDragEnd(){
   if(dragCard){ dragCard.classList.remove('dragging'); dragCard=null; }
 }
+
+// =======================================================
+// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 修正箇所 2 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// =======================================================
 function enableLaneDnD(){
   els('.lane').forEach(l=>{
     l.addEventListener('dragover', e=>{
@@ -399,12 +413,26 @@ function enableLaneDnD(){
       };
       await patchCard(payload);
       dragCard.dataset.order = String(newOrder);
+
+      // BUGFIX: ローカルのitemsデータを更新し、合計を再計算する
+      const movedItem = items.find(it => it.id === payload.id);
+      if(movedItem){
+        movedItem.assignee_id = payload.assignee_id;
+        movedItem.date = payload.date;
+        movedItem.order = payload.order;
+      }
+      recalcSums(); // 合計を再計算して表示を更新
+
       clearPlaceholder();
       dragCard.classList.remove('dragging');
       dragCard = null;
     });
   });
 }
+// =======================================================
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 修正箇所 2 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// =======================================================
+
 function getInsertBefore(lane, mouseY){
   const cards=[...lane.querySelectorAll('.card:not(.dragging), .ghost')];
   let before=null;
