@@ -2,8 +2,7 @@
 mb_internal_encoding('UTF-8');
 require __DIR__.'/../bootstrap.php';
 
-/* ---------------- Notion HTTP ---------------- */
-function notion_req(string $url, string $token, ?string $payload=null): array {
+function notion_req($url, $token, $payload=null){
   $ch = curl_init($url);
   $hdr = [
     'Authorization: Bearer '.$token,
@@ -19,118 +18,115 @@ function notion_req(string $url, string $token, ?string $payload=null): array {
   return [$code, $body];
 }
 
-/* --------------- helpers --------------- */
-function page_title(string $id, string $token): string {
+function page_title($id, $token){
   static $cache = [];
   if (isset($cache[$id])) return $cache[$id];
-
-  [$code, $body] = notion_req("https://api.notion.com/v1/pages/$id", $token);
+  list($code,$body) = notion_req("https://api.notion.com/v1/pages/$id", $token);
   $title = '';
   if ($code === 200) {
     $j = json_decode($body, true);
     if (isset($j['properties'])) {
       foreach ($j['properties'] as $p) {
         if (($p['type'] ?? '') === 'title') {
-          foreach ($p['title'] as $t) $title .= ($t['plain_text'] ?? '');
+          foreach (($p['title'] ?? []) as $t) $title .= $t['plain_text'] ?? '';
           break;
         }
       }
     }
   }
-  return $cache[$id] = ($title !== '' ? $title : $id); // 取れなければIDを返す
+  return $cache[$id] = ($title !== '' ? $title : $id);
 }
 
-function relation_titles(?array $prop, string $token): ?string {
-  if (!is_array($prop) || ($prop['type'] ?? '') !== 'relation') return null;
+function relation_titles($prop, $token){
+  if (($prop['type'] ?? '') !== 'relation') return null;
   $names = [];
-  foreach ($prop['relation'] as $r) {
-    $pid = $r['id'] ?? '';
-    if ($pid) $names[] = page_title($pid, $token);
+  foreach ($prop['relation'] as $rel) {
+    $rid = $rel['id'] ?? '';
+    if ($rid) $names[] = page_title($rid, $token);
   }
-  return $names ? implode('、', $names) : null;
+  return implode('', $names);
 }
 
-function extract_text(?array $prop): ?string {
+function text_from_prop($prop){
   if (!is_array($prop)) return null;
   $t = $prop['type'] ?? '';
   if ($t === 'title' || $t === 'rich_text') {
     $s = '';
-    foreach ($prop[$t] as $x) $s .= ($x['plain_text'] ?? '');
-    return ($s === '') ? null : $s;
+    foreach (($prop[$t] ?? []) as $x) $s .= $x['plain_text'] ?? '';
+    return $s;
   }
   return null;
 }
 
-function pick_key(array $props, array $needles): ?string {
-  foreach ($needles as $needle) {
+function pick_key($props, $candidates){
+  foreach ($candidates as $kw) {
     foreach ($props as $name => $_) {
-      if (mb_strpos($name, $needle) !== false) return $name;
+      if ($kw !== '' && mb_strpos($name, $kw) !== false) return $name;
     }
   }
   return null;
 }
 
-/* --------------- main --------------- */
+/* -------- main -------- */
 $token = getenv('NOTION_TOKEN');
 $db    = getenv('NOTION_DATABASE_ID');
-if (!$token || !$db) {
-  http_response_code(500);
-  header('Content-Type: application/json; charset=utf-8');
-  echo json_encode(['status'=>500,'error'=>'TOKEN/DB missing'], JSON_UNESCAPED_UNICODE);
-  exit;
-}
+if (!$token || !$db) { http_response_code(500); echo json_encode(['error'=>'TOKEN/DB missing']); exit; }
 
-$limit      = max(1, min(100, intval($_GET['limit'] ?? 10)));
-$onlyFilled = (($_GET['only'] ?? '') === 'filled');
+$limit = max(1, min(100, intval($_GET['limit'] ?? 20)));
+
+/* 追加パラメータ
+   field = task | calc | both(既定)
+   only  = filled を指定すると、選ばれた field が空の項目を除外
+*/
+$field = strtolower($_GET['field'] ?? 'both'); // task|calc|both
+if (!in_array($field, ['task','calc','both'], true)) $field = 'both';
+$only  = strtolower($_GET['only']  ?? '');     // filled or ''
 
 $payload = json_encode(['page_size'=>$limit], JSON_UNESCAPED_UNICODE);
-[$code, $body] = notion_req("https://api.notion.com/v1/databases/$db/query", $token, $payload);
-$raw = json_decode($body, true);
+list($code,$body) = notion_req("https://api.notion.com/v1/databases/$db/query", $token, $payload);
+$j = json_decode($body, true);
 
 $out = ['status'=>$code, 'items'=>[]];
 
-if ($code === 200 && ($raw['object'] ?? '') === 'list') {
-  foreach ($raw['results'] as $page) {
-    $props = $page['properties'] ?? [];
+if ($code === 200 && ($j['object'] ?? '') === 'list') {
+  foreach ($j['results'] as $pg) {
+    $p = $pg['properties'] ?? [];
 
-    // 1) まず名前で探す（前の実装互換）
-    $kTask = pick_key($props, ['タスク','タスク名','案件タスク']);
-    $kCalc = pick_key($props, ['計算案件','計算 案件','計算案件名','計算']);
+    // ←← ここで列候補（必要なら実際の列名を足してください）
+    $kTask = pick_key($p, ['タスク','Task','案件','内容']);        // 例: 実列名を追加 OK
+    $kCalc = pick_key($p, ['計算案件','計算','計算案件名','案件']); // 例: 実列名を追加 OK
 
-    // 2) 「値の入っている relation を優先採用」へフォールバック
-    //    （ページごとに relation を見て、relation配列が空でないものを優先的に使う）
-    if ($kTask === null || empty($props[$kTask]['relation'])) {
-      foreach ($props as $n => $p) {
-        if (($p['type'] ?? '') === 'relation' && !empty($p['relation'])) { $kTask = $n; break; }
-      }
-    }
-
-    if ($kCalc === null || empty($props[$kCalc]['relation'])) {
-      foreach ($props as $n => $p) {
-        if (($p['type'] ?? '') === 'relation' && !empty($p['relation']) && $n !== $kTask) { $kCalc = $n; break; }
-      }
-    }
-
-    // 値の取り出し（relation→タイトルに解決 / text系→plain_text）
+    // 値を取り出す
     $task = null;
-    if ($kTask !== null && isset($props[$kTask])) {
-      $p = $props[$kTask];
-      $task = (($p['type'] ?? '') === 'relation') ? relation_titles($p, $token) : extract_text($p);
+    if ($kTask && isset($p[$kTask])) {
+      $pr = $p[$kTask];
+      $task = ($pr['type'] ?? '') === 'relation' ? relation_titles($pr, $token) : (text_from_prop($pr) ?? null);
     }
 
     $calc = null;
-    if ($kCalc !== null && isset($props[$kCalc])) {
-      $p = $props[$kCalc];
-      $calc = (($p['type'] ?? '') === 'relation') ? relation_titles($p, $token) : extract_text($p);
+    if ($kCalc && isset($p[$kCalc])) {
+      $pr = $p[$kCalc];
+      $calc = ($pr['type'] ?? '') === 'relation' ? relation_titles($pr, $token) : (text_from_prop($pr) ?? null);
     }
 
-    if ($onlyFilled && (trim((string)$task)==='' && trim((string)$calc)==='')) continue;
+    // フィルタリング
+    if ($only === 'filled') {
+      if ($field === 'task' && ($task === null || $task === '')) continue;
+      if ($field === 'calc' && ($calc === null || $calc === '')) continue;
+      if ($field === 'both' && ($task === null || $task === '') && ($calc === null || $calc === '')) continue;
+    }
 
-    $out['items'][] = [
-      'id'       => $page['id'],
-      'タスク'   => ($task === '' ? null : $task),
-      '計算案件' => ($calc === '' ? null : $calc),
-    ];
+    // 出力成形（指定 field のみ返すことも可能）
+    $item = ['id' => $pg['id']];
+    if ($field === 'task') {
+      $item['タスク'] = $task;
+    } elseif ($field === 'calc') {
+      $item['計算案件'] = $calc;
+    } else { // both
+      $item['タスク']   = $task;
+      $item['計算案件'] = $calc;
+    }
+    $out['items'][] = $item;
   }
 }
 
