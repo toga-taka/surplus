@@ -1,136 +1,184 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>カードボード（担当者 × 日付）</title>
-  <style>
-    :root { --gap:8px; --bd:#e5e7eb; --fg:#111827; --muted:#6b7280; --bg:#fafafa; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Hiragino Sans', 'Noto Sans JP', sans-serif; color:var(--fg); background:var(--bg); }
-    header{ display:flex; align-items:center; gap:8px; padding:10px 12px; position:sticky; top:0; background:#fff; border-bottom:1px solid var(--bd); z-index:10;}
-    header .spacer{ flex:1; }
-    input[type="date"], select{ padding:6px 8px; font-size:14px; }
-    button{ padding:6px 10px; border:1px solid var(--bd); background:#fff; border-radius:6px; cursor:pointer; }
-    #board{ overflow:auto; height: calc(100vh - 56px); }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>カードボード</title>
+<style>
+:root{
+  --bd:#e5e7eb;
+  --muted:#6b7280;
+  --bg:#f8fafc;
+  --sat:#e8f2ff;
+  --sun:#ffe8e8;
+  --holiday:#ffe8f0;
+  --accent:#60a5fa;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:#111}
+body{font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif}
 
-    /* グリッド：左に担当者列、右に日付列群 */
-    .grid{ display:grid; grid-auto-rows:minmax(64px,auto); border-top:1px solid var(--bd); border-left:1px solid var(--bd); }
-    .cell{ border-right:1px solid var(--bd); border-bottom:1px solid var(--bd); background:#fff; }
-    .th{ background:#f8fafc; font-weight:600; }
-    .th.date{ text-align:center; padding:6px 4px; font-size:12px; line-height:1.2; }
-    .th.assignee{ padding:8px 10px; position:sticky; left:0; background:#f8fafc; z-index:3; }
-    .lane{ min-height:64px; padding:6px; position:relative; }
-    .lane[data-weekday="6"]{ background:#f8fbff; }   /* 土:薄い青 */
-    .lane[data-weekday="0"]{ background:#fff5f5; }   /* 日:薄い赤 */
-    .weekday{ color:var(--muted); font-size:11px; }
-    .sun{ color:#dc2626; } .sat{ color:#2563eb; }
+header{
+  display:flex; align-items:center; gap:.5rem;
+  padding:.6rem .8rem; border-bottom:1px solid var(--bd); background:#fff; position:sticky; top:0; z-index:3;
+}
+header .btn{border:1px solid var(--bd); background:#fff; padding:.3rem .5rem; border-radius:.4rem; cursor:pointer}
+header .btn:disabled{opacity:.5; cursor:not-allowed}
+header .sep{flex:1}
 
-    .card{ background:#fff; border:1px solid var(--bd); border-radius:8px; padding:8px; margin-bottom:8px; box-shadow:0 1px 1px rgba(0,0,0,.04); cursor:grab; }
-    .card:active{ cursor:grabbing; }
-    .ttl{ font-weight:600; font-size:13px; margin-bottom:2px; }
-    .meta{ font-size:12px; color:var(--muted); }
-    .pill{ display:inline-block; font-size:11px; border:1px solid var(--bd); border-radius:999px; padding:1px 6px; margin-right:6px; background:#fafafa; }
-    .ghost{ outline:2px dashed #a3a3a3; outline-offset:-4px; }
-    .dropping{ box-shadow: inset 0 0 0 2px #60a5fa; }
+#board{overflow:auto}
 
-    #loading{ position:fixed; inset:0; background:rgba(255,255,255,.5); display:none; align-items:center; justify-content:center; z-index:50; }
-    #loading .box{ background:#fff; border:1px solid var(--bd); padding:10px 14px; border-radius:8px; }
-    #status{ position:fixed; bottom:10px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; font-size:12px; padding:6px 10px; border-radius:6px; display:none; }
-  </style>
+.grid{
+  display:grid;
+  grid-auto-rows:minmax(64px,auto);
+}
+.grid.compact .lane{min-height:44px}
+.th{
+  position:sticky; left:0; z-index:2; background:#fff; border-right:1px solid var(--bd);
+}
+.cell{
+  border-right:1px solid var(--bd);
+  border-bottom:1px solid var(--bd);
+  background:#fff;
+}
+.cell.lane{
+  min-height:64px; position:relative; padding:6px; background:#fff;
+}
+.cell.lane.sat{background:var(--sat)}
+.cell.lane.sun{background:var(--sun)}
+.cell.lane.holiday{background:var(--holiday)}
+.cell.th.date{position:sticky; top:41px; z-index:1; text-align:center; background:#fff}
+.cell.th.assignee{display:flex; align-items:center; gap:.4rem; padding:6px; font-weight:600}
+
+.datebox{display:flex; flex-direction:column; gap:2px; padding:6px 0}
+.datebox .d{font-weight:700}
+.datebox .w{font-size:12px; color:var(--muted)}
+
+.card{
+  background:#fff; border:1px solid var(--bd); border-radius:.5rem; padding:.5rem .55rem; margin:.35rem 0;
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+  cursor:grab; user-select:none;
+}
+.card:active{cursor:grabbing}
+.card .meta{font-size:12px; color:var(--muted)}
+.card .title{font-weight:600; margin:.15rem 0 .2rem}
+.pill{
+  display:inline-block; border:1px solid var(--bd);
+  border-radius:999px; padding:2px 8px; font-size:12px; margin-right:6px; background:#fafafa;
+}
+.pill.editable{cursor:pointer}
+.ghost{opacity:.4; outline:2px dashed #a3a3a3; outline-offset:4px}
+.dropping{box-shadow: inset 0 0 0 2px #60a5fa}
+
+#loading{position:fixed; inset:0; background:rgba(255,255,255,.45); display:none; z-index:5}
+#loading .box{
+  position:absolute; left:50%; top:56%; transform:translate(-50%,-50%);
+  background:#fff; border:1px solid var(--bd); border-radius:.5rem; padding:10px 16px; font-size:13px;
+}
+#status{
+  position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
+  background:#111; color:#fff; padding:6px 12px; border-radius:8px; font-size:12px; opacity:0; transition:.2s;
+}
+#status.show{opacity:1}
+</style>
 </head>
 <body>
-  <header>
-    <button id="prev">&laquo;</button>
-    <input type="date" id="start">
-    <button id="next">&raquo;</button>
-    <select id="days">
-      <option>7</option><option>14</option><option selected>21</option><option>28</option><option>31</option>
-    </select>
-    <span class="spacer"></span>
-    <label><input type="checkbox" id="compact"> コンパクト</label>
-  </header>
+<header>
+  <button class="btn" id="prev">«</button>
+  <input id="start" type="date" />
+  <button class="btn" id="next">»</button>
+  <select id="days">
+    <option>7</option><option selected>14</option><option>21</option><option>28</option><option value="60">60</option>
+  </select>
+  <label style="display:inline-flex;align-items:center;gap:.4rem;margin-left:.6rem;">
+    <input type="checkbox" id="compact" /> コンパクト
+  </label>
+  <span class="sep"></span>
+</header>
 
-  <div id="board"></div>
+<div id="board">
+  <div id="grid" class="grid"></div>
+</div>
 
-  <div id="loading"><div class="box">通信中...</div></div>
-  <div id="status"></div>
+<div id="loading"><div class="box">通信中…</div></div>
+<div id="status"></div>
 
 <script>
+/* ========= ユーティリティ ========= */
+const el = (sel,root=document)=>root.querySelector(sel);
+const els = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const fmt = (d)=>new Date(d).toISOString().slice(0,10);
+const WEEK = ['日','月','火','水','木','金','土'];
 const API = {
-  USERS:  '/notion_users.php',
-  GRID:   '/notion_grid.php',
-  UPDATE: '/notion_update.php', // まだ未実装なら 200 を返すモックでもOK
+  USERS:'/notion_users.php',
+  GRID:'/notion_grid.php',
+  UPDATE:'/notion_update.php'
 };
+const Loading = {
+  show(){ el('#loading').style.display='block'; },
+  hide(){ el('#loading').style.display='none'; }
+};
+function msg(t){ const s=el('#status'); s.textContent=t; s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 1800); }
 
-const el = (sel, p=document) => p.querySelector(sel);
-const els = (sel, p=document) => [...p.querySelectorAll(sel)];
-const fmt = (d) => d.toISOString().slice(0,10);
-const jpWeek = ['日','月','火','水','木','金','土'];
+let users = [];   // {id,name}
+let dates = [];   // {date, weekday, is_holiday}
+let cards = [];   // items
 
-let users = [];
-let dates = [];
-let cards = []; // {id, assignee_id, date, order, customer, task, content, today_plan, actual}
-
-function today() {
-  const t = new Date(); t.setHours(0,0,0,0); return t;
-}
-
-async function fetchUsers() {
-  const res = await fetch(API.USERS);
-  const js = await res.json();
-  return js.users ?? [];
-}
-
-async function fetchGrid(start, days) {
-  const url = `${API.GRID}?start=${start}&days=${days}`;
-  const res = await fetch(url);
-  const js  = await res.json();
-  return js; // {status, users, dates, items}
-}
-
-function msg(t){ const s=el('#status'); s.textContent=t; s.style.display='block'; setTimeout(()=>s.style.display='none', 2000); }
-const Loading = { show(){ el('#loading').style.display='flex'; }, hide(){ el('#loading').style.display='none'; } };
-
+/* ========= レンダリング ========= */
 function buildGrid(){
-  const board = el('#board');
-  const cols = dates.length + 1; // +1 は左の担当者列
-  board.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.className = 'grid';
-  grid.style.gridTemplateColumns = `220px repeat(${dates.length}, 1fr)`;
-  board.appendChild(grid);
+  const grid = el('#grid');
+  grid.innerHTML = '';
 
-  // ヘッダー行
-  const h0 = document.createElement('div');
-  h0.className = 'cell th assignee';
-  h0.textContent = '担当者';
-  grid.appendChild(h0);
-  for (const d of dates){
+  const cols = 1 + dates.length; // 1列目は担当者
+  grid.style.gridTemplateColumns = `220px repeat(${dates.length}, minmax(240px, 1fr))`;
+
+  // ヘッダ1行目（左上の空白セル）
+  const corner = document.createElement('div');
+  corner.className='cell th';
+  grid.appendChild(corner);
+
+  // 日付ヘッダ
+  for(const d of dates){
     const c = document.createElement('div');
     c.className = 'cell th date';
-    const wd = d.weekday;
-    const cls = wd===0 ? 'sun' : wd===6 ? 'sat' : '';
-    c.innerHTML = `<div>${d.date}</div><div class="weekday ${cls}">${jpWeek[wd]}</div>`;
+    const w = WEEK[d.weekday];
+    c.innerHTML = `<div class="datebox"><div class="d">${d.date}</div><div class="w">${w}${d.is_holiday?'・祝':''}</div></div>`;
     grid.appendChild(c);
   }
 
-  // 各担当者行
-  for (const u of users){
-    const l = document.createElement('div');
-    l.className = 'cell th assignee';
-    l.textContent = u.name || '(無名)';
-    grid.appendChild(l);
+  // 各担当者の行
+  for(const u of users){
+    // 左端見出し
+    const th = document.createElement('div');
+    th.className = 'cell th assignee';
+    th.textContent = u.name || '(無名)';
+    grid.appendChild(th);
 
-    for (const d of dates){
+    // 日毎のレーン
+    for(const d of dates){
       const lane = document.createElement('div');
       lane.className = 'cell lane';
       lane.dataset.assigneeId = u.id || '';
       lane.dataset.date = d.date;
       lane.dataset.weekday = d.weekday;
+      if(d.weekday==6) lane.classList.add('sat');
+      if(d.weekday==0) lane.classList.add('sun');
+      if(d.is_holiday) lane.classList.add('holiday');
       grid.appendChild(lane);
     }
   }
+
+  // カード描画
+  for(const item of cards){
+    const lane = findLane(item.assignee_id, item.date);
+    if(!lane) continue;
+    lane.appendChild(cardEl(item));
+  }
+
+  // 並び順ソート
+  els('.lane').forEach(sortLane);
+  // コンパクト
+  el('#grid').classList.toggle('compact', el('#compact').checked);
 }
 
 function cardEl(item){
@@ -140,165 +188,210 @@ function cardEl(item){
   div.dataset.id = item.id;
   div.dataset.order = item.order ?? 0;
 
-  const title = item.task || '(タスク未設定)';
-  const cust  = item.customer ? `<span class="pill">${item.customer}</span>` : '';
-  const plan  = item.today_plan ? `当日予定:${item.today_plan}` : '';
-  const act   = item.actual ? `／ 実績:${item.actual}` : '';
-  div.innerHTML =
-    `<div class="ttl">${title}</div>
-     <div class="meta">${cust}${item.content ?? ''}</div>
-     <div class="meta">${plan}${act}</div>`;
+  const cust = item.customer || '';
+  const task = item.task || '';
+  const cont = item.content || '';
 
-  // D&D
-  div.addEventListener('dragstart', (e)=>{
-    e.dataTransfer.setData('text/plain', item.id);
-    setTimeout(()=>div.classList.add('ghost'), 0);
-  });
-  div.addEventListener('dragend', ()=>div.classList.remove('ghost'));
+  const plan = (item.today_plan ?? '');
+  const actual = (item.actual ?? '');
 
+  div.innerHTML = `
+    <div class="meta">${cust ? cust : ''}</div>
+    <div class="title">${task ? task : cont}</div>
+    <div>
+      <span class="pill editable" data-edit="plan"   data-value="${plan}">当日予定: ${plan === '' ? '-' : plan}</span>
+      <span class="pill editable" data-edit="actual" data-value="${actual}">実績: ${actual === '' ? '-' : actual}</span>
+    </div>
+  `;
   return div;
 }
 
-function renderCards(){
-  // まず全レーンを空に
-  els('.lane').forEach(l => l.innerHTML = '');
-
-  // lane に該当カードを追加
-  for (const it of cards){
-    const lane = el(`.lane[data-assignee-id="${it.assignee_id??''}"][data-date="${it.date}"]`);
-    if (!lane) continue;
-    lane.appendChild(cardEl(it));
-  }
-
-  // order で並び替え
-  els('.lane').forEach(l=>{
-    const cs = els('.card', l).sort((a,b)=>Number(a.dataset.order)-Number(b.dataset.order));
-    cs.forEach(c=>l.appendChild(c));
-  });
-
-  // ドロップ受け入れ
-  els('.lane').forEach(lane=>{
-    lane.addEventListener('dragover', (e)=>{
-      e.preventDefault();
-      lane.classList.add('dropping');
-
-      const draggingId = e.dataTransfer.getData('text/plain');
-      const children = els('.card', lane);
-      let before = null;
-      for (const ch of children){
-        const rect = ch.getBoundingClientRect();
-        if (e.clientY < rect.top + rect.height/2){ before = ch; break; }
-      }
-      if (!before) lane.appendChild(el(`[data-id="${draggingId}"]`));
-      else lane.insertBefore(el(`[data-id="${draggingId}"]`), before);
-    });
-    lane.addEventListener('dragleave', ()=> lane.classList.remove('dropping'));
-    lane.addEventListener('drop', async (e)=>{
-      e.preventDefault();
-      lane.classList.remove('dropping');
-
-      const cardId = e.dataTransfer.getData('text/plain');
-      const cardElmt = el(`.card[data-id="${cardId}"]`);
-      if (!cardElmt) return;
-
-      // 新しい並び順
-      const children = els('.card', lane);
-      const idx = children.indexOf(cardElmt);
-      const prev = children[idx-1];
-      const next = children[idx+1];
-      let newOrder = 0;
-      if (prev && next){
-        newOrder = Math.floor((Number(prev.dataset.order)+Number(next.dataset.order))/2);
-      }else if (prev){
-        newOrder = Number(prev.dataset.order) + 10;
-      }else if (next){
-        newOrder = Number(next.dataset.order) - 10;
-      }else{
-        newOrder = 0;
-      }
-
-      const assignee_id = lane.dataset.assigneeId || null;
-      const date = lane.dataset.date;
-
-      await patchCard({ id: cardId, assignee_id, date, order: newOrder });
-    });
-  });
-}
-
-async function patchCard(payload){
-  Loading.show();
+/* ========= データ取得 ========= */
+async function reload(){
   try{
-    const res = await fetch(API.UPDATE, {
-      method:'PATCH',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const js = await res.json().catch(()=>({}));
-    if (res.ok){
-      // UI も即時反映
-      const i = cards.findIndex(x=>x.id===payload.id);
-      if (i>=0){
-        cards[i] = { ...cards[i],
-          assignee_id: payload.assignee_id ?? cards[i].assignee_id,
-          date:        payload.date        ?? cards[i].date,
-          order:       payload.order       ?? cards[i].order,
-        };
-      }
-      renderCards();
-      msg('更新しました');
-    }else{
-      console.warn(js);
-      alert(`更新に失敗しました: ${js.error||res.status}`);
-    }
-  }finally{
-    Loading.hide();
-  }
-}
+    Loading.show();
+    const start = el('#start').value || fmt(new Date());
+    const days  = Number(el('#days').value || 14);
 
-async function load(start, days){
-  Loading.show();
-  try{
-    // APIから取得
-    const grid = await fetchGrid(start, days);
-    dates = grid.dates || [];
-    cards = grid.items || [];
+    // ユーザー
+    const ures = await fetch(API.USERS);
+    const ujs = await ures.json();
+    users = (ujs.users || []).filter(x=>x && x.name);
 
-    // users: 可能なら users API を優先
-    try{
-      const u = await fetchUsers();
-      users = u.length ? u : (grid.users || []);
-    }catch(_){
-      users = grid.users || [];
-    }
+    // グリッド（dates + items）
+    const gres = await fetch(`${API.GRID}?start=${encodeURIComponent(start)}&days=${days}`);
+    const gjs = await gres.json();
+    dates = gjs.dates || [];
+    cards = gjs.items || [];
 
     buildGrid();
-    renderCards();
+  }catch(err){
+    console.error(err);
+    alert('読み込みに失敗しました');
   }finally{
     Loading.hide();
   }
 }
 
-/* --------- 初期化 --------- */
-(function init(){
-  // UI
-  const d = new Date(); d.setDate(d.getDate() - d.getDay()); // 週初め（任意）
-  el('#start').value = fmt(d);
-  el('#days').value  = '14';
+/* ========= レーン/並び ========= */
+function findLane(assigneeId, date){
+  return el(`.lane[data-assignee-id="${css(assigneeId||'')}"][data-date="${css(date)}"]`);
+}
+function css(s){ return String(s).replace(/"/g,'\\"'); }
 
-  const reload = ()=>{
-    load(el('#start').value, el('#days').value);
+function sortLane(lane){
+  const children = els('.card', lane)
+    .sort((a,b)=> Number(a.dataset.order||0) - Number(b.dataset.order||0));
+  children.forEach(ch=> lane.appendChild(ch));
+}
+
+/* ========= DnD ========= */
+let dragData = null;
+
+document.addEventListener('dragstart', (e)=>{
+  const card = e.target.closest('.card'); if(!card) return;
+  dragData = {
+    id: card.dataset.id,
+    fromLane: card.closest('.lane')
   };
-  el('#start').addEventListener('change', reload);
-  el('#days').addEventListener('change', reload);
-  el('#prev').addEventListener('click', ()=>{
-    const t = new Date(el('#start').value); t.setDate(t.getDate() - Number(el('#days').value));
-    el('#start').value = fmt(t); reload();
-  });
-  el('#next').addEventListener('click', ()=>{
-    const t = new Date(el('#start').value); t.setDate(t.getDate() + Number(el('#days').value));
-    el('#start').value = fmt(t); reload();
-  });
+  card.classList.add('ghost');
+  e.dataTransfer.setData('text/plain', card.dataset.id);
+  e.dataTransfer.effectAllowed = 'move';
+});
 
+document.addEventListener('dragend', (e)=>{
+  const card = e.target.closest('.card'); if(card) card.classList.remove('ghost');
+  dragData = null;
+  els('.lane').forEach(l=>l.classList.remove('dropping'));
+});
+
+document.addEventListener('dragover', (e)=>{
+  const lane = e.target.closest('.lane'); if(!lane || !dragData) return;
+  e.preventDefault(); e.dataTransfer.dropEffect='move';
+  lane.classList.add('dropping');
+
+  const card = el(`.card[data-id="${dragData.id}"]`);
+  if(!card) return;
+
+  const before = findBeforeNode(lane, e.clientY);
+  if(before === null){ lane.appendChild(card); }
+  else if(before !== card){ lane.insertBefore(card, before); }
+});
+
+document.addEventListener('dragleave', (e)=>{
+  const lane = e.target.closest('.lane'); if(!lane) return;
+  lane.classList.remove('dropping');
+});
+
+document.addEventListener('drop', async (e)=>{
+  const lane = e.target.closest('.lane'); if(!lane || !dragData) return;
+  e.preventDefault(); lane.classList.remove('dropping');
+
+  const card = el(`.card[data-id="${dragData.id}"]`); if(!card) return;
+
+  // 新しい order を決める
+  const before = findBeforeNode(lane, e.clientY);
+  const children = els('.card', lane);
+  let newOrder = 10;
+  if(children.length===1){
+    newOrder = 10;
+  }else if(before===null){
+    const last = children[children.length-1];
+    newOrder = Number(last.dataset.order||0) + 10;
+  }else{
+    const idx = children.indexOf(before);
+    const prev = children[idx-1] || null;
+    const a = prev? Number(prev.dataset.order||0) : 0;
+    const b = Number(before.dataset.order||0);
+    newOrder = Math.floor((a+b)/2) || (b-1);
+  }
+  card.dataset.order = newOrder;
+
+  // サーバ更新
+  const assignee_id = lane.dataset.assigneeId || null;
+  const date = lane.dataset.date;
+  await patchCard({ id: dragData.id, assignee_id, date, order:newOrder });
+  msg('✔ 移動しました');
+});
+
+function findBeforeNode(lane, mouseY){
+  const cards = els('.card', lane);
+  let before = null;
+  for(const ch of cards){
+    const r = ch.getBoundingClientRect();
+    const middle = r.top + r.height/2;
+    if(mouseY < middle){ before = ch; break; }
+  }
+  return before; // null のときは末尾
+}
+
+/* ========= 更新（クリック編集もここへ） ========= */
+async function patchCard(payload){
+  try{
+    Loading.show();
+    const res = await fetch(API.UPDATE, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'},
+      body: JSON.stringify(payload)
+    });
+    const js = await res.json().catch(()=> ({}));
+    if(!res.ok || (js.status && js.status!==200)){
+      console.warn(js);
+      alert(`保存に失敗しました（${js.status||res.status}）`);
+      return {ok:false, js};
+    }
+    return {ok:true, js};
+  }finally{
+    Loading.hide();
+  }
+}
+
+/* クリック編集（当日予定/実績） */
+document.addEventListener('click', async (e)=>{
+  const elPill = e.target.closest('.editable[data-edit]'); if(!elPill) return;
+  const card = e.target.closest('.card'); if(!card) return;
+
+  const id = card.dataset.id;
+  const field = elPill.dataset.edit; // 'plan' | 'actual'
+  const label = field==='plan' ? '当日予定' : '実績';
+  const cur = elPill.dataset.value ?? '';
+
+  const v = prompt(`${label} を入力してください（空でクリア）`, cur);
+  if(v===null) return;
+
+  const num = (v==='' ? null : Number(v));
+  if(v!=='' && Number.isNaN(num)){ alert('数値で入力してください'); return; }
+
+  const payload = { id };
+  if(field==='plan') payload.today_plan = num; else payload.actual = num;
+
+  const r = await patchCard(payload);
+  if(r.ok){
+    elPill.dataset.value = (v==='' ? '' : String(num));
+    elPill.textContent = `${label}: ${v==='' ? '-' : num}`;
+    msg('✔ 保存しました');
+  }
+});
+
+/* ========= コントロール ========= */
+el('#prev').addEventListener('click', ()=>{
+  const d = new Date(el('#start').value || Date.now());
+  d.setDate(d.getDate()-Number(el('#days').value||14));
+  el('#start').value = fmt(d); reload();
+});
+el('#next').addEventListener('click', ()=>{
+  const d = new Date(el('#start').value || Date.now());
+  d.setDate(d.getDate()+Number(el('#days').value||14));
+  el('#start').value = fmt(d); reload();
+});
+el('#days').addEventListener('change', reload);
+el('#start').addEventListener('change', reload);
+el('#compact').addEventListener('change', ()=> el('#grid').classList.toggle('compact', el('#compact').checked));
+
+/* ========= 初期化 ========= */
+(function init(){
+  const t = new Date();
+  el('#start').value = fmt(t);
   reload();
 })();
 </script>
