@@ -6,41 +6,46 @@
 <title>Surplus Board</title>
 <style>
   :root{
-    --left: 220px;
-    --col: 300px;
-    --rowh: auto;
+    --left: 220px;         /* 左の担当者列の幅 */
+    --col: 300px;          /* 日付列の幅 */
     --gap: 8px;
     --bd:#d1d5db;
     --muted:#6b7280;
+    --toolbarH: 48px;
   }
   *{box-sizing:border-box}
   body{margin:0;font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", Helvetica, Arial}
+
+  /* ツールバー */
   .toolbar{
-    position: sticky; top:0; z-index:50;
+    position: sticky; top:0; z-index:60;
     display:flex; gap:8px; align-items:center;
     padding:10px 12px; background:#fff; border-bottom:1px solid var(--bd);
+    height: var(--toolbarH);
   }
   .toolbar input, .toolbar select, .toolbar button{
     padding:6px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff;
   }
   .toolbar .grow{flex:1}
 
-  /* グリッド全体 */
   .wrap{padding:8px}
+
+  /* 日付ヘッダ（固定） */
   .dates{
-    position: sticky; top:48px; z-index:40; background:#fff; border-bottom:1px solid var(--bd);
+    position: sticky; top: calc(var(--toolbarH)); z-index:50; background:#fff; border-bottom:1px solid var(--bd);
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
-    pointer-events: none; /* ヘッダが DnD をブロックしない */
+    pointer-events: none;
   }
-  .dates .blank{ position:sticky; left:0; z-index:41; background:#fff; border-right:1px solid var(--bd); pointer-events:auto; }
+  .dates .blank{
+    position:sticky; left:0; z-index:51; background:#fff; border-right:1px solid var(--bd); pointer-events:auto;
+    display:flex; align-items:center; padding:8px 10px; font-weight:600;
+  }
   .dateHead{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:8px 10px; border-left:1px dashed var(--bd);
   }
-  .dateHead .d{
-    font-weight:600;
-  }
+  .dateHead .d{ font-weight:600; }
   .dateHead .w{ color:var(--muted); font-size:12px; }
   .dateHead.sun .d, .dateHead.sun .w{ color:#dc2626; }
   .dateHead.sat .d, .dateHead.sat .w{ color:#2563eb; }
@@ -57,12 +62,16 @@
   }
   .name{
     position: sticky; left:0; z-index:30; background:#fff;
-    padding:10px; border-right:1px solid var(--bd); min-height:48px; display:flex; align-items:center; gap:8px;
+    padding:8px 10px; border-right:1px solid var(--bd); min-height:48px; display:flex; align-items:center; gap:8px;
   }
-  .name .dragUser{ cursor:grab; font-weight:700; }
+  .name .reorder{ display:flex; gap:6px; }
+  .name .reorder button{
+    padding:2px 6px; font-size:12px; border:1px solid var(--bd); border-radius:6px; background:#fff; cursor:pointer;
+  }
+  .name .label{ font-weight:700; }
   .name .tot{ margin-left:auto; font-size:12px; color:var(--muted); }
 
-  /* 各マス（担当者×日付） */
+  /* 各マス */
   .lane{
     position:relative;
     min-height:140px; padding:8px; border:1px solid var(--bd); border-radius:10px; background:#fff;
@@ -70,12 +79,12 @@
   .laneSum{
     position:absolute; top:6px; right:8px;
     font-size:12px; background:#eef2ff; border:1px solid var(--bd);
-    border-radius:999px; padding:2px 8px; color:#111827;
+    border-radius:999px; padding:2px 8px; color:#111827; white-space:nowrap;
   }
 
   /* カード */
   .card{
-    position:relative; margin-top:28px; /* laneSum を避ける余白 */
+    position:relative; margin-top:28px;
     border:1px solid var(--bd); border-radius:10px; padding:10px 36px 10px 28px; background:#fff;
     box-shadow:0 1px 2px rgba(0,0,0,.06);
   }
@@ -86,7 +95,7 @@
     position:absolute; right:6px; top:6px; border:1px solid var(--bd); background:#fff; border-radius:8px;
     padding:2px 8px; font-size:12px; cursor:pointer;
   }
-  .title{ font-weight:600; margin-bottom:4px; padding-right:48px; } /* 編集ボタンと被らないよう右に余白 */
+  .title{ font-weight:600; margin-bottom:4px; padding-right:48px; }
   .meta{ color:var(--muted); font-size:12px; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .pills{ display:flex; gap:6px; flex-wrap:wrap; }
   .pill{
@@ -97,37 +106,46 @@
   .pill.actual{ background:#eef2ff; border-color:#c7d2fe; }
   .pill.remain{ background:#fef2f2; border-color:#fecaca; }
 
-  /* ドラッグ中 */
   .card.dragging{ opacity:.5 }
-  .placeholder{
-    height:56px; margin-top:8px; border:2px dashed #93c5fd; border-radius:10px; background:#eff6ff;
-  }
+  .placeholder{ height:56px; margin-top:8px; border:2px dashed #93c5fd; border-radius:10px; background:#eff6ff; }
 
   /* トースト */
   .toast{
-    position:fixed; right:12px; bottom:12px; z-index:60;
+    position:fixed; right:12px; bottom:12px; z-index:80;
     background:#111827; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.18);
     display:none;
   }
   .toast.show{ display:block; }
 
-  /* モーダル */
-  .modal{
-    position:fixed; inset:0; z-index:70; display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.25);
+  /* 通信中オーバーレイ */
+  .overlay{
+    position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.6); backdrop-filter:saturate(1.2) blur(1.5px);
   }
+  .overlay.show{ display:flex; }
+  .overlay .bubble{
+    background:#111827; color:#fff; padding:14px 20px; border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.25);
+    font-weight:600;
+  }
+
+  /* 並び替えモーダル */
+  .modal{ position:fixed; inset:0; z-index:85; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.25); }
   .modal.show{ display:flex; }
   .panel{
-    width:min(520px, 92vw); background:#fff; border-radius:14px; border:1px solid var(--bd); padding:14px;
+    width:min(420px,92vw); background:#fff; border-radius:14px; border:1px solid var(--bd); padding:14px;
   }
   .panel h3{ margin:0 0 10px 0; }
-  .form{ display:grid; grid-template-columns: 1fr 2fr; gap:10px; align-items:center; }
-  .form input, .form select{ padding:8px 10px; border:1px solid var(--bd); border-radius:8px; }
-  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  .uList{ list-style:none; margin:0; padding:0; }
+  .uList li{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff; margin-bottom:8px;
+  }
+  .uList li .drag{ cursor:grab; color:#6b7280; }
+  .uList li[draggable="true"]{ user-select:none; }
+  .uList .ghost{ opacity:.5; }
+  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
   .btn{ padding:8px 12px; border:1px solid var(--bd); border-radius:8px; background:#fff; cursor:pointer; }
   .btn.primary{ background:#2563eb; color:#fff; border-color:#2563eb; }
-
-  /* スクロール時に日付行が固定・左列固定済み */
 </style>
 </head>
 <body>
@@ -139,6 +157,7 @@
       </select>
     </label>
     <button class="btn" id="reload">更新</button>
+    <button class="btn" id="openReorder">担当者並び替え…</button>
     <div class="grow"></div>
     <span id="status" style="color:#6b7280"></span>
   </div>
@@ -149,8 +168,9 @@
   </div>
 
   <div class="toast" id="toast">保存しました</div>
+  <div class="overlay" id="overlay"><div class="bubble" id="overlayText">通信中…</div></div>
 
-  <!-- 編集モーダル -->
+  <!-- 編集モーダル（既存） -->
   <div class="modal" id="modal">
     <div class="panel">
       <h3>カードを編集</h3>
@@ -180,6 +200,18 @@
     </div>
   </div>
 
+  <!-- 担当者 並び替えモーダル（新規） -->
+  <div class="modal" id="reorderModal">
+    <div class="panel">
+      <h3>担当者の並び替え</h3>
+      <ul class="uList" id="uList"></ul>
+      <div class="actions">
+        <button class="btn" id="reorderCancel">閉じる</button>
+        <button class="btn primary" id="reorderSave">保存</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 /* ====== ユーティリティ ====== */
 const el = s=>document.querySelector(s);
@@ -190,6 +222,13 @@ function showToast(msg){
   const t=el('#toast'); t.textContent=msg||'保存しました';
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1800);
 }
+function showOverlay(text){
+  if(text) el('#overlayText').textContent = text;
+  el('#overlay').classList.add('show');
+}
+function hideOverlay(){
+  el('#overlay').classList.remove('show');
+}
 
 function queryParams(){
   const u=new URL(location.href);
@@ -198,28 +237,28 @@ function queryParams(){
     days:  Math.max(1, Math.min(60, parseInt(u.searchParams.get('days')||14,10)))
   };
 }
-
 async function getJSON(url){
   const r=await fetch(url,{cache:'no-store'});
   if(!r.ok) throw new Error(`${url}: ${r.status}`);
   return r.json();
 }
+const storageKey = (name)=>`surplus_${name}`;
 
 /* ====== データ ====== */
 let users=[], dates=[], items=[];
 let userMap=new Map(); // id -> name
 
-/* ====== レイアウト生成 ====== */
+/* ====== ヘッダ/行構築 ====== */
 function buildHeaders(){
   const dWrap=el('#dates');
   dWrap.innerHTML='';
   dWrap.style.setProperty('--days', String(dates.length));
-  // 左カラムの空き
+
   const blank=document.createElement('div');
   blank.className='blank';
   blank.textContent='担当者 / 日付';
   dWrap.appendChild(blank);
-  // 各日
+
   for(const d of dates){
     const box=document.createElement('div');
     box.className='dateHead';
@@ -242,14 +281,26 @@ function buildRows(){
   rWrap.innerHTML='';
   rWrap.style.setProperty('--days', String(dates.length));
 
-  for(const u of users){
+  for(let i=0;i<users.length;i++){
+    const u=users[i];
     const row=document.createElement('div');
     row.className='row';
 
-    // 左：担当者名（将来ドラッグ並べ替えに備えてハンドルだけ表示）
+    // 左：担当者名 + 上下ボタン
     const name=document.createElement('div');
     name.className='name';
-    name.innerHTML=`<span class="dragUser" title="（準備中）">≡</span>${u.name}<span class="tot" id="user-sum-${u.id}"></span>`;
+    name.innerHTML=`
+      <div class="reorder">
+        <button type="button" data-act="up" title="上へ">▲</button>
+        <button type="button" data-act="down" title="下へ">▼</button>
+      </div>
+      <div class="label">${u.name}</div>
+      <div class="tot" id="user-sum-${u.id}"></div>
+    `;
+    // クリックで上下
+    name.querySelector('[data-act="up"]').addEventListener('click',()=>moveUser(u.id,-1));
+    name.querySelector('[data-act="down"]').addEventListener('click',()=>moveUser(u.id,+1));
+
     row.appendChild(name);
 
     // 各マス
@@ -270,7 +321,7 @@ function buildRows(){
   }
 }
 
-/* ====== カード配置 ====== */
+/* ====== カード ====== */
 function makeCard(it){
   const card=document.createElement('div');
   card.className='card';
@@ -296,19 +347,11 @@ function makeCard(it){
       <span class="pill remain">残:${remain}</span>
     </div>
   `;
-
-  // 編集
   card.querySelector('.editBtn').addEventListener('click', e=>{
-    e.stopPropagation();
-    openEditor(card);
+    e.stopPropagation(); openEditor(card);
   });
-
-  // DnD
   card.addEventListener('dragstart', onCardDragStart);
   card.addEventListener('dragend', onCardDragEnd);
-  // ハンドルでドラッグ触感を出す（なくても全体でドラッグできます）
-  card.querySelector('.handle').addEventListener('mousedown', ()=>{ /* no-op */ });
-
   return card;
 }
 
@@ -335,88 +378,53 @@ function placeCards(){
 
 /* ====== 集計 ====== */
 function recalcSums(){
-  const byDate=new Map();                     // date -> {plan,today,actual}
-  const byLane=new Map();                     // uid|date -> ...
-  const byUser=new Map();                     // uid -> ...
-
+  const byDate=new Map(), byLane=new Map(), byUser=new Map();
   for(const it of items){
     const p=Number(it.plan||0), t=Number(it.today_plan||0), a=Number(it.actual||0);
-    const dkey=it.date;
-    const lkey=`${it.assignee_id}|${it.date}`;
-    const ukey=it.assignee_id;
+    const dkey=it.date, lkey=`${it.assignee_id}|${it.date}`, ukey=it.assignee_id;
 
-    const d = byDate.get(dkey)||{plan:0,today:0,actual:0};
-    d.plan+=p; d.today+=t; d.actual+=a; byDate.set(dkey,d);
-
-    const l = byLane.get(lkey)||{plan:0,today:0,actual:0};
-    l.plan+=p; l.today+=t; l.actual+=a; byLane.set(lkey,l);
-
-    const u = byUser.get(ukey)||{plan:0,today:0,actual:0};
-    u.plan+=p; u.today+=t; u.actual+=a; byUser.set(ukey,u);
+    const d=byDate.get(dkey)||{plan:0,today:0,actual:0}; d.plan+=p; d.today+=t; d.actual+=a; byDate.set(dkey,d);
+    const l=byLane.get(lkey)||{plan:0,today:0,actual:0}; l.plan+=p; l.today+=t; l.actual+=a; byLane.set(lkey,l);
+    const u=byUser.get(ukey)||{plan:0,today:0,actual:0}; u.plan+=p; u.today+=t; u.actual+=a; byUser.set(ukey,u);
   }
-
-  // ヘッダ
+  // 日付ヘッダ
   dates.forEach(d=>{
     const s=byDate.get(d.date)||{plan:0,today:0,actual:0};
     const b=el(`#sum-${d.date}`); if(b) b.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`;
   });
-
   // 各マス
   users.forEach(u=>{
     dates.forEach(d=>{
       const key=`${u.id}|${d.date}`;
       const s=byLane.get(key)||{plan:0,today:0,actual:0};
       const lane=document.querySelector(`.lane[data-assignee="${u.id}"][data-date="${d.date}"]`);
-      if(!lane) return;
-      const badge=lane.querySelector('.laneSum');
-      if(badge) badge.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`;
+      if(lane){ const badge=lane.querySelector('.laneSum'); if(badge) badge.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`; }
     });
-    // 担当者トータル
+    // 担当者合計
     const us=byUser.get(u.id)||{plan:0,today:0,actual:0};
-    const lab=el(`#user-sum-${u.id}`);
-    if(lab) lab.textContent = `計:${fmt(us.plan)} / 予:${fmt(us.today)} / 実:${fmt(us.actual)}`;
+    const lab=el(`#user-sum-${u.id}`); if(lab) lab.textContent=`計:${fmt(us.plan)} / 予:${fmt(us.today)} / 実:${fmt(us.actual)}`;
   });
 }
 
-/* ====== DnD（レーン間移動＋並べ替え） ====== */
+/* ====== DnD（カード移動・並べ替え） ====== */
 let dragCard=null, placeholderEl=null;
-
 function placeholder(){
-  if(!placeholderEl){
-    const ph=document.createElement('div');
-    ph.className='placeholder';
-    placeholderEl=ph;
-  }
+  if(!placeholderEl){ const ph=document.createElement('div'); ph.className='placeholder'; placeholderEl=ph; }
   return placeholderEl;
 }
-function clearPlaceholder(){
-  if(placeholderEl && placeholderEl.parentNode){
-    placeholderEl.parentNode.removeChild(placeholderEl);
-  }
-  placeholderEl=null;
-}
-
+function clearPlaceholder(){ if(placeholderEl?.parentNode) placeholderEl.parentNode.removeChild(placeholderEl); placeholderEl=null; }
 function getInsertBefore(lane, mouseY){
   const cards=[...lane.querySelectorAll('.card:not(.dragging)')];
-  let target=null;
-  for(const c of cards){
-    const r=c.getBoundingClientRect();
-    if(mouseY < r.top + r.height/2){ target=c; break; }
-  }
-  return target;
+  for(const c of cards){ const r=c.getBoundingClientRect(); if(mouseY < r.top + r.height/2) return c; }
+  return null;
 }
-
 function onCardDragStart(e){
   dragCard=e.currentTarget;
   dragCard.classList.add('dragging');
   e.dataTransfer.effectAllowed='move';
   e.dataTransfer.setData('text/plain', dragCard.dataset.id||'');
 }
-function onCardDragEnd(){
-  clearPlaceholder();
-  if(dragCard){ dragCard.classList.remove('dragging'); dragCard=null; }
-}
-
+function onCardDragEnd(){ clearPlaceholder(); dragCard?.classList.remove('dragging'); dragCard=null; }
 function enableLaneDnD(){
   els('.lane').forEach(lane=>{
     lane.addEventListener('dragover', e=>{
@@ -424,18 +432,12 @@ function enableLaneDnD(){
       e.preventDefault();
       const ph=placeholder();
       const before=getInsertBefore(lane, e.clientY);
-      if(before) lane.insertBefore(ph, before);
-      else lane.appendChild(ph);
+      if(before) lane.insertBefore(ph, before); else lane.appendChild(ph);
     });
     lane.addEventListener('drop', async e=>{
-      e.preventDefault();
-      if(!dragCard) return;
+      e.preventDefault(); if(!dragCard) return;
       const ph=placeholderEl;
-      if(ph && ph.parentNode===lane){
-        lane.insertBefore(dragCard, ph);
-      }else{
-        lane.appendChild(dragCard);
-      }
+      if(ph && ph.parentNode===lane){ lane.insertBefore(dragCard, ph); } else { lane.appendChild(dragCard); }
       const siblings=[...lane.querySelectorAll('.card')];
       const idx=siblings.indexOf(dragCard);
       const prev=siblings[idx-1]||null, next=siblings[idx+1]||null;
@@ -443,23 +445,13 @@ function enableLaneDnD(){
       const b=next?Number(next.dataset.order||0):(a+20);
       const newOrder=Math.floor((a+b)/2);
 
-      // サーバ保存
-      await patchCard({
-        id: dragCard.dataset.id,
-        assignee_id: lane.dataset.assignee,
-        date: lane.dataset.date,
-        order: newOrder
-      });
+      await patchCard({ id: dragCard.dataset.id, assignee_id: lane.dataset.assignee, date: lane.dataset.date, order: newOrder });
 
-      // ローカル更新
       dragCard.dataset.order=String(newOrder);
       const it=items.find(x=>x.id===dragCard.dataset.id);
       if(it){ it.assignee_id=lane.dataset.assignee; it.date=lane.dataset.date; it.order=newOrder; }
 
-      clearPlaceholder();
-      dragCard.classList.remove('dragging');
-      dragCard=null;
-      recalcSums();
+      clearPlaceholder(); onCardDragEnd(); recalcSums();
     });
   });
 }
@@ -470,49 +462,36 @@ function openEditor(card){
   const id=card.dataset.id;
   const it=items.find(x=>x.id===id);
   if(!it) return;
-
   editingId=id;
-  // 初期値
+
   el('#f_date').value = it.date || '';
-  // 担当セレクト
   const sel=el('#f_assignee'); sel.innerHTML='';
   for(const u of users){
-    const opt=document.createElement('option');
-    opt.value=u.id; opt.textContent=u.name;
-    if(u.id===it.assignee_id) opt.selected=true;
-    sel.appendChild(opt);
+    const opt=document.createElement('option'); opt.value=u.id; opt.textContent=u.name;
+    if(u.id===it.assignee_id) opt.selected=true; sel.appendChild(opt);
   }
-  el('#f_plan').value     = it.plan??'';
-  el('#f_today').value    = it.today_plan??'';
-  el('#f_actual').value   = it.actual??'';
-  el('#f_remain').value   = it.remaining??'';
-
+  el('#f_plan').value   = it.plan??'';
+  el('#f_today').value  = it.today_plan??'';
+  el('#f_actual').value = it.actual??'';
+  el('#f_remain').value = it.remaining??'';
   el('#modal').classList.add('show');
 }
-function closeEditor(){
-  el('#modal').classList.remove('show');
-  editingId=null;
-}
+function closeEditor(){ el('#modal').classList.remove('show'); editingId=null; }
 el('#cancel').addEventListener('click', closeEditor);
 el('#modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeEditor(); });
-
 el('#save').addEventListener('click', async ()=>{
   if(!editingId) return;
-  const it=items.find(x=>x.id===editingId);
-  if(!it) return;
-
+  const it=items.find(x=>x.id===editingId); if(!it) return;
   const payload={
     id: editingId,
-    date: el('#f_date').value || undefined,
-    assignee_id: el('#f_assignee').value || undefined,
-    plan:  valOrUndef(el('#f_plan').value),
-    today_plan: valOrUndef(el('#f_today').value),
-    actual: valOrUndef(el('#f_actual').value),
-    remaining: valOrUndef(el('#f_remain').value)
+    date: valOrEmpty(el('#f_date').value),
+    assignee_id: valOrEmpty(el('#f_assignee').value),
+    plan: numOrNull(el('#f_plan').value),
+    today_plan: numOrNull(el('#f_today').value),
+    actual: numOrNull(el('#f_actual').value),
+    remaining: numOrNull(el('#f_remain').value)
   };
-  // 保存（defined のみ送る）
   await patchCard(payload);
-
   // ローカル反映
   if(payload.date!==undefined) it.date=payload.date;
   if(payload.assignee_id!==undefined) it.assignee_id=payload.assignee_id;
@@ -520,24 +499,17 @@ el('#save').addEventListener('click', async ()=>{
   if(payload.today_plan!==undefined) it.today_plan=payload.today_plan;
   if(payload.actual!==undefined) it.actual=payload.actual;
   if(payload.remaining!==undefined) it.remaining=payload.remaining;
-
-  // 再配置
-  placeCards();
-  closeEditor();
-  showToast('更新しました');
+  placeCards(); closeEditor(); showToast('更新しました');
 });
+function valOrEmpty(v){ return (v===''?undefined:v); }
+function numOrNull(v){ if(v===''||v==null) return null; const n=Number(v); return isNaN(n)?null:n; }
 
-function valOrUndef(v){
-  if(v==='' || v===null || v===undefined) return undefined;
-  const n=Number(v); return isNaN(n)?undefined:n;
-}
-
-/* ====== サーバ更新 ====== */
+/* ====== サーバ更新（通信中オーバーレイ対応） ====== */
 async function patchCard(changes){
-  // undefined は送らない
+  // undefined を送らない
   const payload={}; for(const k of Object.keys(changes)){ if(changes[k]!==undefined) payload[k]=changes[k]; }
-  // 保存中インジケータ（簡易）
   el('#status').textContent='保存中…';
+  showOverlay('通信中…');
   try{
     const r=await fetch('/notion_update.php',{
       method:'POST',
@@ -545,41 +517,121 @@ async function patchCard(changes){
       body: JSON.stringify(payload)
     });
     const j=await r.json().catch(()=> ({}));
-    if(!r.ok || (j.status && j.status!==200)){
-      console.error('update fail', j);
-      showToast('保存に失敗しました');
-      throw new Error('update failed');
-    }
-    showToast('保存しました');
+    if(!r.ok || (j.status && j.status!==200)){ console.error('update fail', j); showToast('保存に失敗しました'); }
+    else { showToast('保存しました'); }
   }finally{
     el('#status').textContent='';
+    hideOverlay();
   }
 }
 
-/* ====== 入口 ====== */
+/* ====== 担当者の並び替え ====== */
+/* ローカル保存：users の配列順を記憶 */
+function loadUserOrder(){
+  const raw=localStorage.getItem(storageKey('userOrder'));
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch{ return null; }
+}
+function saveUserOrder(){
+  const order=users.map(u=>u.id);
+  localStorage.setItem(storageKey('userOrder'), JSON.stringify(order));
+}
+function applyUserOrder(){
+  const order=loadUserOrder();
+  if(!order) return;
+  const idx=new Map(order.map((id,i)=>[id,i]));
+  users.sort((a,b)=>{
+    const ia=idx.has(a.id)?idx.get(a.id):1e9;
+    const ib=idx.has(b.id)?idx.get(b.id):1e9;
+    return ia-ib;
+  });
+}
+function moveUser(id, dir){
+  const i=users.findIndex(u=>u.id===id);
+  if(i<0) return;
+  const j=i+dir;
+  if(j<0 || j>=users.length) return;
+  const tmp=users[i]; users[i]=users[j]; users[j]=tmp;
+  saveUserOrder();
+  buildRows(); placeCards();
+}
+
+/* 小リストでドラッグ並び替え */
+const reorderModal=el('#reorderModal');
+el('#openReorder').addEventListener('click', ()=>{
+  const ul=el('#uList'); ul.innerHTML='';
+  for(const u of users){
+    const li=document.createElement('li');
+    li.setAttribute('draggable','true');
+    li.dataset.id=u.id;
+    li.innerHTML=`<span>${u.name}</span><span class="drag">≡</span>`;
+    ul.appendChild(li);
+  }
+  setupDragList(ul);
+  reorderModal.classList.add('show');
+});
+el('#reorderCancel').addEventListener('click', ()=>reorderModal.classList.remove('show'));
+el('#reorderSave').addEventListener('click', ()=>{
+  const ul=el('#uList');
+  const ids=[...ul.children].map(li=>li.dataset.id);
+  // users を ids 順に並べ替え
+  const map=new Map(users.map(u=>[u.id,u]));
+  users = ids.map(id=>map.get(id)).filter(Boolean);
+  saveUserOrder(); buildRows(); placeCards();
+  reorderModal.classList.remove('show');
+});
+function setupDragList(ul){
+  let dragging=null;
+  ul.addEventListener('dragstart', e=>{
+    const li=e.target.closest('li'); if(!li) return;
+    dragging=li; li.classList.add('ghost'); e.dataTransfer.effectAllowed='move';
+  });
+  ul.addEventListener('dragend', ()=>{
+    if(dragging) dragging.classList.remove('ghost'); dragging=null;
+  });
+  ul.addEventListener('dragover', e=>{
+    if(!dragging) return; e.preventDefault();
+    const after=getDragAfterElement(ul, e.clientY);
+    if(after==null) ul.appendChild(dragging); else ul.insertBefore(dragging, after);
+  });
+}
+function getDragAfterElement(container, y){
+  const els=[...container.querySelectorAll('li:not(.ghost)')];
+  let closest=null, closestOffset=Number.NEGATIVE_INFINITY;
+  for(const c of els){
+    const box=c.getBoundingClientRect();
+    const offset=y - box.top - box.height/2;
+    if(offset<0 && offset>closestOffset){ closestOffset=offset; closest=c; }
+  }
+  return closest;
+}
+
+/* ====== 初期化 ====== */
 async function bootstrap(){
-  // URL パラメータ
   const qp=queryParams();
   el('#start').value = qp.start;
   el('#days').value  = String(qp.days);
 
-  // データ取得
-  const [u, g] = await Promise.all([
-    getJSON('/notion_users.php'),
-    getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`)
-  ]);
+  showOverlay('読み込み中…');
+  try{
+    const [u, g] = await Promise.all([
+      getJSON('/notion_users.php'),
+      getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`)
+    ]);
+    users = (g.users && g.users.length)? g.users : (u.users || []);
+    dates = g.dates || [];
+    items = g.items || [];
+    userMap = new Map(users.map(x=>[x.id, x.name]));
 
-  // users は grid の users を優先（整列・フィルタ済み想定）
-  users = (g.users && g.users.length)? g.users : u.users || [];
-  dates = g.dates || [];
-  items = g.items || [];
+    // 以前の並び順を適用
+    applyUserOrder();
 
-  userMap = new Map(users.map(x=>[x.id, x.name]));
-
-  // ビルド
-  buildHeaders();
-  buildRows();
-  placeCards();
+    buildHeaders();
+    buildRows();
+    placeCards();
+  } finally {
+    hideOverlay();
+  }
 }
 
 el('#reload').addEventListener('click', ()=>{
@@ -593,6 +645,7 @@ el('#reload').addEventListener('click', ()=>{
 
 bootstrap().catch(err=>{
   console.error(err);
+  hideOverlay();
   alert('読み込みに失敗しました。/notion_users.php と /notion_grid.php を確認してください。');
 });
 </script>
