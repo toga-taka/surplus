@@ -6,11 +6,7 @@
 <title>ボード</title>
 <style>
 :root{
-  --bd:#e5e7eb;
-  --muted:#6b7280;
-  --red:#ef4444;
-  --blue:#3b82f6;
-  --bg:#f8fafc;
+  --bd:#e5e7eb; --muted:#6b7280; --red:#ef4444; --bg:#f8fafc;
 }
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;background:#fff;color:#111}
@@ -26,17 +22,19 @@ button{cursor:pointer}
 .th{display:grid;grid-template-columns:220px repeat(var(--cols),1fr);border-bottom:1px solid var(--bd)}
 .th .cell{padding:.5rem;border-right:1px solid var(--bd);background:#fff;position:sticky;top:56px;z-index:3}
 .th .cell.head{background:#fafafa;font-weight:600}
-.th .cell .badge{display:inline-block;font-size:12px;color:#111;background:#f3f4f6;border:1px solid var(--bd);border-radius:999px;padding:2px 8px;margin-left:6px}
-.th .cell.sun{color:var(--red)}
+.th .cell.sun{color:#ef4444}
 .th .cell.sat{background:#f0f7ff}
 .th .cell.hol{color:#fff;background:#ef4444;border-color:#ef4444}
 
 .body{display:grid;grid-template-columns:220px repeat(var(--cols),1fr)}
 .rowHead{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:.5rem;display:flex;align-items:center;gap:.5rem;position:sticky;left:0;background:#fff;z-index:2}
 .rowHead .handle{cursor:grab;color:var(--muted)}
+
 .lane{min-height:140px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);position:relative;background:#fff}
 .lane[data-weekday="6"]{background:#f8fbff}
 .lane[data-weekday="0"]{background:#fff5f5}
+/* ← 合計バッジ（各マス内） */
+.lane .sum{position:absolute;top:6px;right:6px;font-size:12px;color:#111;background:#f3f4f6;border:1px solid var(--bd);border-radius:999px;padding:2px 8px}
 
 .card{margin:8px; padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);cursor:grab}
 .card:active{cursor:grabbing}
@@ -86,6 +84,7 @@ const todayStr=()=>new Date().toISOString().slice(0,10);
 function ymd(d){return d.toISOString().slice(0,10);}
 function by(q){ return document.querySelector(q); }
 
+/* little toasts */
 const Saving = {
   el: $('#saving'),
   show(msg='通信中…'){ this.el.textContent=msg; this.el.classList.add('show'); },
@@ -134,11 +133,7 @@ function buildHeader(){
     const w = d.weekday;
     if(w===0) cell.classList.add('sun');
     if(w===6) cell.classList.add('sat');
-    cell.innerHTML = `
-      <div style="display:flex;align-items:baseline;gap:.5rem;">
-        <div>${d.date.replaceAll('-','/')}（${fmtW(w)}）</div>
-        <span class="badge" id="sum-${d.date}">計:0 / 予:0 / 実:0</span>
-      </div>`;
+    cell.innerHTML = `<div>${d.date.replaceAll('-','/')}（${fmtW(w)}）</div>`;
     th.appendChild(cell);
   }
 }
@@ -148,7 +143,6 @@ function buildBody(){
   body.style.setProperty('--cols', STATE.dates.length);
   body.innerHTML='';
 
-  // 行：必ず「全ユーザー」を出す（items が無くても）
   for(const u of STATE.users){
     const rh = document.createElement('div');
     rh.className='rowHead';
@@ -162,6 +156,14 @@ function buildBody(){
       lane.dataset.assigneeId = u.id || '';
       lane.dataset.date = d.date;
       lane.dataset.weekday = d.weekday;
+
+      // ← 各マスの合計バッジ（初期は 0）
+      const sum = document.createElement('div');
+      sum.className = 'sum';
+      sum.id = `sum-${u.id||''}-${d.date}`;
+      sum.textContent = `計:0 / 予:0 / 実:0`;
+      lane.appendChild(sum);
+
       enableLaneDnD(lane);
       body.appendChild(lane);
     }
@@ -169,11 +171,11 @@ function buildBody(){
 }
 
 function renderCards(){
-  // いったんクリア
-  $$('.lane').forEach(l=>l.innerHTML='');
+  // クリア
+  $$('.lane').forEach(l=>l.innerHTML = `<div class="sum" id="sum-${l.dataset.assigneeId||''}-${l.dataset.date}">計:0 / 予:0 / 実:0</div>`);
 
-  // 合計のためのマップ date => sums
-  const sums = new Map(); // date -> {plan,today,actual}
+  // キー: assignee|date → 集計
+  const sums = new Map();
 
   const byKey = (a,b)=> (a.order||0)-(b.order||0);
 
@@ -184,19 +186,21 @@ function renderCards(){
     const card = cardEl(it);
     lane.appendChild(card);
 
-    const s = sums.get(it.date) || {plan:0,today:0,actual:0};
-    s.plan += Number(it.plan||0);
+    const key = `${it.assignee_id||''}|${it.date}`;
+    const s = sums.get(key) || {plan:0,today:0,actual:0};
+    s.plan  += Number(it.plan||0);
     s.today += Number(it.today_plan||0);
-    s.actual += Number(it.actual||0);
-    sums.set(it.date, s);
+    s.actual+= Number(it.actual||0);
+    sums.set(key, s);
   }
 
-  // 合計バッジ更新
-  for(const d of STATE.dates){
-    const s = sums.get(d.date) || {plan:0,today:0,actual:0};
-    const el = by(`#sum-${d.date}`);
-    if(el) el.textContent = `計:${trim0(s.plan)} / 予:${trim0(s.today)} / 実:${trim0(s.actual)}`;
-  }
+  // 各マスの合計バッジを更新
+  $$('.lane').forEach(l=>{
+    const key = `${l.dataset.assigneeId||''}|${l.dataset.date}`;
+    const s = sums.get(key) || {plan:0,today:0,actual:0};
+    const badge = $(`#sum-${l.dataset.assigneeId||''}-${l.dataset.date}`);
+    if(badge) badge.textContent = `計:${trim0(s.plan)} / 予:${trim0(s.today)} / 実:${trim0(s.actual)}`;
+  });
 }
 
 function buildBoard(){
@@ -237,7 +241,6 @@ function cardEl(item){
     </div>
   `;
 
-  // inline edit
   for(const n of $$('.num', div)){
     n.addEventListener('focus', e=>{ n.dataset._old = n.textContent.trim(); });
     n.addEventListener('keydown', e=>{
@@ -255,10 +258,8 @@ function cardEl(item){
       try{
         Saving.show();
         await patch({ id: item.id, [field]: val });
-        // ローカル反映
         const idx = STATE.items.findIndex(x=>x.id===item.id);
         if(idx>=0){ STATE.items[idx][field] = val; }
-        // 表示更新（このカードだけ数値を書き戻し & 合計再計算）
         n.textContent = numfmt(val);
         renderCards();
         Saving.ok();
@@ -273,12 +274,7 @@ function cardEl(item){
 }
 
 function numfmt(v){ return (v===null || v===undefined || v==='')?'':String(v); }
-function parseNum(t){
-  const s = String(t).trim();
-  if(s==='') return null;
-  const n = Number(s.replace(/[^0-9.+-]/g,''));
-  return isFinite(n)?n:null;
-}
+function parseNum(t){ const s=String(t).trim(); if(s==='') return null; const n=Number(s.replace(/[^0-9.+-]/g,'')); return isFinite(n)?n:null; }
 function trim0(n){ return (Math.round(n*100)/100)||0; }
 
 /* ========= DnD ========= */
@@ -286,12 +282,7 @@ let dragData=null, ghost=null;
 
 function enableCardDnD(card){
   card.addEventListener('dragstart', e=>{
-    dragData = {
-      id: card.dataset.id,
-      fromLane: card.closest('.lane'),
-      order: Number(card.dataset.order||0),
-      el: card
-    };
+    dragData = { id: card.dataset.id, fromLane: card.closest('.lane'), order: Number(card.dataset.order||0), el: card };
     ghost = card.cloneNode(true);
     ghost.classList.add('ghost');
     ghost.style.width = card.getBoundingClientRect().width+'px';
@@ -328,7 +319,6 @@ function enableLaneDnD(lane){
     e.preventDefault();
     lane.classList.remove('dropping');
 
-    // 新しい order を決定
     const children = $$('.card', lane).filter(x=>x!==dragData.el);
     let before = getBefore(lane, e.clientY);
     let newOrder = 10;
@@ -353,7 +343,6 @@ function enableLaneDnD(lane){
       Saving.show();
       await patch({ id: dragData.id, assignee_id, date, order: newOrder });
 
-      // ローカル更新
       const idx = STATE.items.findIndex(x=>x.id===dragData.id);
       if(idx>=0){
         STATE.items[idx].assignee_id = assignee_id;
@@ -387,10 +376,8 @@ function setFromQuery(){
   const p = new URLSearchParams(location.search);
   const s = p.get('start') || todayStr();
   const d = Number(p.get('days') || 14);
-  $('#start').value = s;
-  $('#days').value = d;
+  $('#start').value = s; $('#days').value = d;
 }
-
 async function reload(){
   const s = $('#start').value;
   const d = Number($('#days').value||14);
@@ -403,7 +390,6 @@ async function reload(){
     buildBoard();
   }finally{ Saving.hide(); }
 }
-
 function bindUI(){
   $('#prev').addEventListener('click', ()=>{
     const dt = new Date($('#start').value); dt.setDate(dt.getDate() - Number($('#days').value||14));
