@@ -1,399 +1,337 @@
 <!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>カードボード</title>
+<meta charset="utf-8">
+<title>Notion Board</title>
 <style>
-:root{
-  --bd:#e5e7eb;
-  --muted:#6b7280;
-  --bg:#f8fafc;
-  --sat:#e8f2ff;
-  --sun:#ffe8e8;
-  --holiday:#ffe8f0;
-  --accent:#60a5fa;
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff;color:#111}
-body{font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif}
-
-header{
-  display:flex; align-items:center; gap:.5rem;
-  padding:.6rem .8rem; border-bottom:1px solid var(--bd); background:#fff; position:sticky; top:0; z-index:3;
-}
-header .btn{border:1px solid var(--bd); background:#fff; padding:.3rem .5rem; border-radius:.4rem; cursor:pointer}
-header .btn:disabled{opacity:.5; cursor:not-allowed}
-header .sep{flex:1}
-
-#board{overflow:auto}
-
-.grid{
-  display:grid;
-  grid-auto-rows:minmax(64px,auto);
-}
-.grid.compact .lane{min-height:44px}
-.th{
-  position:sticky; left:0; z-index:2; background:#fff; border-right:1px solid var(--bd);
-}
-.cell{
-  border-right:1px solid var(--bd);
-  border-bottom:1px solid var(--bd);
-  background:#fff;
-}
-.cell.lane{
-  min-height:64px; position:relative; padding:6px; background:#fff;
-}
-.cell.lane.sat{background:var(--sat)}
-.cell.lane.sun{background:var(--sun)}
-.cell.lane.holiday{background:var(--holiday)}
-.cell.th.date{position:sticky; top:41px; z-index:1; text-align:center; background:#fff}
-.cell.th.assignee{display:flex; align-items:center; gap:.4rem; padding:6px; font-weight:600}
-
-.datebox{display:flex; flex-direction:column; gap:2px; padding:6px 0}
-.datebox .d{font-weight:700}
-.datebox .w{font-size:12px; color:var(--muted)}
-
-.card{
-  background:#fff; border:1px solid var(--bd); border-radius:.5rem; padding:.5rem .55rem; margin:.35rem 0;
-  box-shadow:0 1px 0 rgba(0,0,0,.03);
-  cursor:grab; user-select:none;
-}
-.card:active{cursor:grabbing}
-.card .meta{font-size:12px; color:var(--muted)}
-.card .title{font-weight:600; margin:.15rem 0 .2rem}
-.pill{
-  display:inline-block; border:1px solid var(--bd);
-  border-radius:999px; padding:2px 8px; font-size:12px; margin-right:6px; background:#fafafa;
-}
-.pill.editable{cursor:pointer}
-.ghost{opacity:.4; outline:2px dashed #a3a3a3; outline-offset:4px}
-.dropping{box-shadow: inset 0 0 0 2px #60a5fa}
-
-#loading{position:fixed; inset:0; background:rgba(255,255,255,.45); display:none; z-index:5}
-#loading .box{
-  position:absolute; left:50%; top:56%; transform:translate(-50%,-50%);
-  background:#fff; border:1px solid var(--bd); border-radius:.5rem; padding:10px 16px; font-size:13px;
-}
-#status{
-  position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
-  background:#111; color:#fff; padding:6px 12px; border-radius:8px; font-size:12px; opacity:0; transition:.2s;
-}
-#status.show{opacity:1}
+  :root { --cell-pad:8px; --gap:8px; --lane-h: 220px; --left-w: 220px; --hdr-h: 36px; }
+  body { margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Hiragino Sans","Noto Sans JP",sans-serif; }
+  .topbar { padding:10px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #eee; position:sticky; top:0; background:#fff; z-index:10; }
+  input,select,button { padding:6px 8px; }
+  .board { display:grid; grid-template-columns: var(--left-w) 1fr; }
+  .dates { display:grid; grid-auto-flow:column; grid-auto-columns: 260px; position:sticky; top:36px; background:#fff; z-index:5; border-bottom:1px solid #eee; }
+  .dateHdr { height:var(--hdr-h); display:flex; align-items:center; justify-content:center; border-left:1px solid #eee; border-right:1px solid #eee; font-weight:600; }
+  .dateHdr.sat { background:#eef6ff; }
+  .dateHdr.sun { background:#ffeef0; color:#c00; }
+  .rows { display:grid; grid-auto-rows: minmax(var(--lane-h), auto); }
+  .row { display:grid; grid-template-columns: var(--left-w) 1fr; border-bottom:1px solid #f1f1f1; }
+  .userCell { border-right:1px solid #eee; padding:10px; display:flex; align-items:center; gap:8px; position:sticky; left:0; background:#fff; z-index:3; }
+  .row-handle { cursor:grab; user-select:none; font-size:18px; line-height:1; opacity:.5; }
+  .grid { display:grid; grid-auto-flow:column; grid-auto-columns: 260px; }
+  .cell { border-left:1px solid #eee; border-right:1px solid #eee; padding:var(--cell-pad); position:relative; }
+  .totals { position:absolute; top:4px; right:6px; font-size:12px; background:#fff; padding:2px 6px; border-radius:10px; border:1px solid #e5e5e5; }
+  .lane { display:flex; flex-direction:column; gap:var(--gap); margin-top: 4px; padding-top: var(--hdr-h); }
+  .card { border:1px solid #e5e5e5; border-radius:10px; padding:8px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); cursor:grab; }
+  .dragging { opacity:.6; }
+  .title { font-weight:600; margin-bottom:4px; }
+  .sub { font-size:12px; color:#666; margin-bottom:6px; }
+  .pills { display:flex; gap:6px; flex-wrap:wrap; }
+  .pill { font-size:12px; border-radius:999px; padding:2px 8px; border:1px solid #e5e5e5; background:#fafafa; cursor:pointer; }
+  .pill.editing { outline:2px solid #4098ff; background:#fff; }
+  .drop-indicator { height:6px; margin:2px 0; border-radius:3px; background:#cfe3ff; display:none; }
+  .lane.dragover .drop-indicator { display:block; }
+  .saving { position:fixed; right:12px; bottom:12px; padding:8px 12px; background:#111; color:#fff; border-radius:8px; opacity:.9; display:none; }
+  .saving.show { display:block; }
 </style>
-</head>
-<body>
-<header>
-  <button class="btn" id="prev">«</button>
-  <input id="start" type="date" />
-  <button class="btn" id="next">»</button>
-  <select id="days">
-    <option>7</option><option selected>14</option><option>21</option><option>28</option><option value="60">60</option>
-  </select>
-  <label style="display:inline-flex;align-items:center;gap:.4rem;margin-left:.6rem;">
-    <input type="checkbox" id="compact" /> コンパクト
+<div class="topbar">
+  <label>開始日 <input type="date" id="start"></label>
+  <label>日数
+    <select id="days">
+      <option>7</option><option selected>14</option><option>30</option><option>60</option>
+    </select>
   </label>
-  <span class="sep"></span>
-</header>
-
-<div id="board">
-  <div id="grid" class="grid"></div>
+  <button id="reload">再読込</button>
 </div>
-
-<div id="loading"><div class="box">通信中…</div></div>
-<div id="status"></div>
+<div id="board" class="board"></div>
+<div id="saving" class="saving">通信中…</div>
 
 <script>
-/* ========= ユーティリティ ========= */
-const el = (sel,root=document)=>root.querySelector(sel);
-const els = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
-const fmt = (d)=>new Date(d).toISOString().slice(0,10);
-const WEEK = ['日','月','火','水','木','金','土'];
-const API = {
-  USERS:'/notion_users.php',
-  GRID:'/notion_grid.php',
-  UPDATE:'/notion_update.php'
-};
-const Loading = {
-  show(){ el('#loading').style.display='block'; },
-  hide(){ el('#loading').style.display='none'; }
-};
-function msg(t){ const s=el('#status'); s.textContent=t; s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 1800); }
+const $ = (s, el=document)=>el.querySelector(s);
+const $$ = (s, el=document)=>Array.from(el.querySelectorAll(s));
+const saving = $('#saving');
 
-let users = [];   // {id,name}
-let dates = [];   // {date, weekday, is_holiday}
-let cards = [];   // items
+function showSaving(show){ saving.classList.toggle('show', !!show); }
+function toastOk(){ saving.textContent='保存しました'; setTimeout(()=>saving.textContent='通信中…',1200); }
 
-/* ========= レンダリング ========= */
-function buildGrid(){
-  const grid = el('#grid');
-  grid.innerHTML = '';
-
-  const cols = 1 + dates.length; // 1列目は担当者
-  grid.style.gridTemplateColumns = `220px repeat(${dates.length}, minmax(240px, 1fr))`;
-
-  // ヘッダ1行目（左上の空白セル）
-  const corner = document.createElement('div');
-  corner.className='cell th';
-  grid.appendChild(corner);
-
-  // 日付ヘッダ
-  for(const d of dates){
-    const c = document.createElement('div');
-    c.className = 'cell th date';
-    const w = WEEK[d.weekday];
-    c.innerHTML = `<div class="datebox"><div class="d">${d.date}</div><div class="w">${w}${d.is_holiday?'・祝':''}</div></div>`;
-    grid.appendChild(c);
-  }
-
-  // 各担当者の行
-  for(const u of users){
-    // 左端見出し
-    const th = document.createElement('div');
-    th.className = 'cell th assignee';
-    th.textContent = u.name || '(無名)';
-    grid.appendChild(th);
-
-    // 日毎のレーン
-    for(const d of dates){
-      const lane = document.createElement('div');
-      lane.className = 'cell lane';
-      lane.dataset.assigneeId = u.id || '';
-      lane.dataset.date = d.date;
-      lane.dataset.weekday = d.weekday;
-      if(d.weekday==6) lane.classList.add('sat');
-      if(d.weekday==0) lane.classList.add('sun');
-      if(d.is_holiday) lane.classList.add('holiday');
-      grid.appendChild(lane);
-    }
-  }
-
-  // カード描画
-  for(const item of cards){
-    const lane = findLane(item.assignee_id, item.date);
-    if(!lane) continue;
-    lane.appendChild(cardEl(item));
-  }
-
-  // 並び順ソート
-  els('.lane').forEach(sortLane);
-  // コンパクト
-  el('#grid').classList.toggle('compact', el('#compact').checked);
+function fmtDateLabel(d, w){
+  const ymd = d.replaceAll('-','/');
+  const ww = ['日','月','火','水','木','金','土'][w];
+  return `${ymd}（${ww}）`;
 }
 
-function cardEl(item){
-  const div = document.createElement('div');
-  div.className = 'card';
-  div.draggable = true;
-  div.dataset.id = item.id;
-  div.dataset.order = item.order ?? 0;
+async function fetchGrid(start, days){
+  const res = await fetch(`/notion_grid.php?start=${start}&days=${days}`);
+  return res.json();
+}
 
-  const cust = item.customer || '';
-  const task = item.task || '';
-  const cont = item.content || '';
+async function updateNotion(payload){
+  const res = await fetch('/notion_update.php',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'},
+    body: JSON.stringify(payload)
+  });
+  let json={};
+  try { json = await res.json(); } catch(_) {}
+  if(json.status !== 200){
+    console.warn('update failed', json);
+    throw new Error('update failed');
+  }
+  return json;
+}
 
-  const plan = (item.today_plan ?? '');
-  const actual = (item.actual ?? '');
+/* -------------- render -------------- */
+let STATE = { users:[], dates:[], items:[] };
 
-  div.innerHTML = `
-    <div class="meta">${cust ? cust : ''}</div>
-    <div class="title">${task ? task : cont}</div>
-    <div>
-      <span class="pill editable" data-edit="plan"   data-value="${plan}">当日予定: ${plan === '' ? '-' : plan}</span>
-      <span class="pill editable" data-edit="actual" data-value="${actual}">実績: ${actual === '' ? '-' : actual}</span>
+function buildBoard(){
+  const root = $('#board');
+  root.innerHTML='';
+  const leftCol = document.createElement('div');
+  leftCol.style.position='sticky';
+  leftCol.style.top='0';
+  leftCol.style.background='#fff';
+  leftCol.style.zIndex='5';
+  // 日付ヘッダ
+  const datesWrap = document.createElement('div');
+  datesWrap.className='dates';
+  datesWrap.style.gridColumn='2 / span 1';
+  STATE.dates.forEach(d=>{
+    const h = document.createElement('div');
+    h.className='dateHdr ' + (d.weekday===6?'sat':(d.weekday===0?'sun':'')); // 土:青, 日:赤
+    h.textContent = fmtDateLabel(d.date, d.weekday);
+    datesWrap.appendChild(h);
+  });
+
+  // 行（担当者）
+  const rowsWrap = document.createElement('div'); rowsWrap.className='rows';
+  const order = loadRowOrder(STATE.users.map(u=>u.id));
+  const usersSorted = order.map(id => STATE.users.find(u=>u.id===id)).filter(Boolean);
+
+  for(const user of usersSorted){
+    const row = document.createElement('div'); row.className='row'; row.dataset.userId=user.id;
+
+    // 左セル（担当者名＋行ハンドル）
+    const ucell = document.createElement('div'); ucell.className='userCell';
+    const grip = document.createElement('span'); grip.className='row-handle'; grip.textContent='≡';
+    grip.title='ドラッグして担当者の行順を変更';
+    grip.draggable=true;
+    grip.addEventListener('dragstart', e=>{
+      e.dataTransfer.setData('text/row-id', user.id);
+      e.dataTransfer.effectAllowed='move';
+    });
+    ucell.appendChild(grip);
+
+    const uname = document.createElement('div');
+    uname.textContent = user.name || user.id;
+    ucell.appendChild(uname);
+    row.appendChild(ucell);
+
+    // 右側のグリッド（各日付セル）
+    const grid = document.createElement('div'); grid.className='grid';
+    for(const d of STATE.dates){
+      const cell = document.createElement('div'); cell.className='cell'; cell.dataset.date=d.date;
+      // totals
+      const totals = document.createElement('div'); totals.className='totals'; totals.textContent='-/-/-';
+      cell.appendChild(totals);
+      // lane
+      const lane = document.createElement('div'); lane.className='lane'; lane.dataset.userId=user.id; lane.dataset.date=d.date;
+      const di = document.createElement('div'); di.className='drop-indicator'; lane.appendChild(di);
+
+      // items
+      const items = STATE.items
+        .filter(it=>it.assignee_id===user.id && it.date===d.date)
+        .sort((a,b)=>(a.order||0)-(b.order||0));
+      for(const it of items){
+        lane.appendChild(buildCard(it));
+      }
+      updateTotals(cell);
+
+      enableLaneDnD(lane); // ドロップで入替/移動
+      cell.appendChild(lane);
+      grid.appendChild(cell);
+    }
+    row.appendChild(grid);
+    rowsWrap.appendChild(row);
+  }
+
+  // 行並べ替え drop
+  rowsWrap.addEventListener('dragover', e=>{
+    if(!e.dataTransfer.types.includes('text/row-id')) return;
+    e.preventDefault();
+  });
+  rowsWrap.addEventListener('drop', e=>{
+    const id = e.dataTransfer.getData('text/row-id');
+    const rows = $$('.row', rowsWrap);
+    let target = e.target.closest('.row');
+    if(!target){ return; }
+    const dragging = rows.find(r=>r.dataset.userId===id);
+    if(!dragging || dragging===target) return;
+    const rect = target.getBoundingClientRect();
+    const before = (e.clientY < rect.top + rect.height/2);
+    rowsWrap.insertBefore(dragging, before ? target : target.nextSibling);
+    saveRowOrder($$('.row', rowsWrap).map(r=>r.dataset.userId));
+  });
+
+  root.appendChild(leftCol);
+  root.appendChild(datesWrap);
+  root.appendChild(rowsWrap);
+}
+
+function buildCard(it){
+  const el = document.createElement('div'); el.className='card'; el.draggable=true;
+  el.dataset.id=it.id; el.dataset.order=it.order||0;
+  el.innerHTML = `
+    <div class="title">${escapeHtml(it.task || '(無題)')}</div>
+    <div class="sub">${escapeHtml(it.customer || '')}　${escapeHtml(it.content || '')}</div>
+    <div class="pills">
+      <span class="pill" data-field="plan"       title="計画を編集">${fmtNum(it.plan)}</span>
+      <span class="pill" data-field="today_plan" title="当日予定を編集">${fmtNum(it.today_plan)}</span>
+      <span class="pill" data-field="actual"     title="実績を編集">${fmtNum(it.actual)}</span>
     </div>
   `;
-  return div;
-}
-
-/* ========= データ取得 ========= */
-async function reload(){
-  try{
-    Loading.show();
-    const start = el('#start').value || fmt(new Date());
-    const days  = Number(el('#days').value || 14);
-
-    // ユーザー
-    const ures = await fetch(API.USERS);
-    const ujs = await ures.json();
-    users = (ujs.users || []).filter(x=>x && x.name);
-
-    // グリッド（dates + items）
-    const gres = await fetch(`${API.GRID}?start=${encodeURIComponent(start)}&days=${days}`);
-    const gjs = await gres.json();
-    dates = gjs.dates || [];
-    cards = gjs.items || [];
-
-    buildGrid();
-  }catch(err){
-    console.error(err);
-    alert('読み込みに失敗しました');
-  }finally{
-    Loading.hide();
-  }
-}
-
-/* ========= レーン/並び ========= */
-function findLane(assigneeId, date){
-  return el(`.lane[data-assignee-id="${css(assigneeId||'')}"][data-date="${css(date)}"]`);
-}
-function css(s){ return String(s).replace(/"/g,'\\"'); }
-
-function sortLane(lane){
-  const children = els('.card', lane)
-    .sort((a,b)=> Number(a.dataset.order||0) - Number(b.dataset.order||0));
-  children.forEach(ch=> lane.appendChild(ch));
-}
-
-/* ========= DnD ========= */
-let dragData = null;
-
-document.addEventListener('dragstart', (e)=>{
-  const card = e.target.closest('.card'); if(!card) return;
-  dragData = {
-    id: card.dataset.id,
-    fromLane: card.closest('.lane')
-  };
-  card.classList.add('ghost');
-  e.dataTransfer.setData('text/plain', card.dataset.id);
-  e.dataTransfer.effectAllowed = 'move';
-});
-
-document.addEventListener('dragend', (e)=>{
-  const card = e.target.closest('.card'); if(card) card.classList.remove('ghost');
-  dragData = null;
-  els('.lane').forEach(l=>l.classList.remove('dropping'));
-});
-
-document.addEventListener('dragover', (e)=>{
-  const lane = e.target.closest('.lane'); if(!lane || !dragData) return;
-  e.preventDefault(); e.dataTransfer.dropEffect='move';
-  lane.classList.add('dropping');
-
-  const card = el(`.card[data-id="${dragData.id}"]`);
-  if(!card) return;
-
-  const before = findBeforeNode(lane, e.clientY);
-  if(before === null){ lane.appendChild(card); }
-  else if(before !== card){ lane.insertBefore(card, before); }
-});
-
-document.addEventListener('dragleave', (e)=>{
-  const lane = e.target.closest('.lane'); if(!lane) return;
-  lane.classList.remove('dropping');
-});
-
-document.addEventListener('drop', async (e)=>{
-  const lane = e.target.closest('.lane'); if(!lane || !dragData) return;
-  e.preventDefault(); lane.classList.remove('dropping');
-
-  const card = el(`.card[data-id="${dragData.id}"]`); if(!card) return;
-
-  // 新しい order を決める
-  const before = findBeforeNode(lane, e.clientY);
-  const children = els('.card', lane);
-  let newOrder = 10;
-  if(children.length===1){
-    newOrder = 10;
-  }else if(before===null){
-    const last = children[children.length-1];
-    newOrder = Number(last.dataset.order||0) + 10;
-  }else{
-    const idx = children.indexOf(before);
-    const prev = children[idx-1] || null;
-    const a = prev? Number(prev.dataset.order||0) : 0;
-    const b = Number(before.dataset.order||0);
-    newOrder = Math.floor((a+b)/2) || (b-1);
-  }
-  card.dataset.order = newOrder;
-
-  // サーバ更新
-  const assignee_id = lane.dataset.assigneeId || null;
-  const date = lane.dataset.date;
-  await patchCard({ id: dragData.id, assignee_id, date, order:newOrder });
-  msg('✔ 移動しました');
-});
-
-function findBeforeNode(lane, mouseY){
-  const cards = els('.card', lane);
-  let before = null;
-  for(const ch of cards){
-    const r = ch.getBoundingClientRect();
-    const middle = r.top + r.height/2;
-    if(mouseY < middle){ before = ch; break; }
-  }
-  return before; // null のときは末尾
-}
-
-/* ========= 更新（クリック編集もここへ） ========= */
-async function patchCard(payload){
-  try{
-    Loading.show();
-    const res = await fetch(API.UPDATE, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'},
-      body: JSON.stringify(payload)
+  // pill クリック編集
+  $$('.pill', el).forEach(p=>{
+    p.addEventListener('click', async ()=>{
+      const field = p.dataset.field;
+      const curr = p.textContent.trim();
+      const next = prompt(`「${labelOf(field)}」を入力（空でクリア）`, curr===''?'':curr);
+      if(next===null) return;
+      let num = next.trim()==='' ? null : Number(next);
+      if(next.trim()!=='' && Number.isNaN(num)){ alert('数値を入力してください'); return; }
+      try{
+        showSaving(true);
+        await updateNotion({ id: el.dataset.id, [field]: num });
+        p.textContent = fmtNum(num);
+        updateTotals(el.closest('.cell'));
+        toastOk();
+      }catch(e){ alert('保存に失敗しました'); }
+      finally{ showSaving(false); }
     });
-    const js = await res.json().catch(()=> ({}));
-    if(!res.ok || (js.status && js.status!==200)){
-      console.warn(js);
-      alert(`保存に失敗しました（${js.status||res.status}）`);
-      return {ok:false, js};
-    }
-    return {ok:true, js};
-  }finally{
-    Loading.hide();
-  }
+  });
+  enableCardDnD(el);
+  return el;
 }
 
-/* クリック編集（当日予定/実績） */
-document.addEventListener('click', async (e)=>{
-  const elPill = e.target.closest('.editable[data-edit]'); if(!elPill) return;
-  const card = e.target.closest('.card'); if(!card) return;
-
-  const id = card.dataset.id;
-  const field = elPill.dataset.edit; // 'plan' | 'actual'
-  const label = field==='plan' ? '当日予定' : '実績';
-  const cur = elPill.dataset.value ?? '';
-
-  const v = prompt(`${label} を入力してください（空でクリア）`, cur);
-  if(v===null) return;
-
-  const num = (v==='' ? null : Number(v));
-  if(v!=='' && Number.isNaN(num)){ alert('数値で入力してください'); return; }
-
-  const payload = { id };
-  if(field==='plan') payload.today_plan = num; else payload.actual = num;
-
-  const r = await patchCard(payload);
-  if(r.ok){
-    elPill.dataset.value = (v==='' ? '' : String(num));
-    elPill.textContent = `${label}: ${v==='' ? '-' : num}`;
-    msg('✔ 保存しました');
+function updateTotals(cell){
+  const cards = $$('.card', cell);
+  let sPlan=0, sToday=0, sActual=0;
+  for(const c of cards){
+    sPlan  += parseFloat($('[data-field="plan"]', c)?.textContent||0)    || 0;
+    sToday += parseFloat($('[data-field="today_plan"]', c)?.textContent||0)|| 0;
+    sActual+= parseFloat($('[data-field="actual"]', c)?.textContent||0)  || 0;
   }
-});
+  $('.totals', cell).textContent = `計:${round1(sPlan)} / 予:${round1(sToday)} / 実:${round1(sActual)}`;
+}
 
-/* ========= コントロール ========= */
-el('#prev').addEventListener('click', ()=>{
-  const d = new Date(el('#start').value || Date.now());
-  d.setDate(d.getDate()-Number(el('#days').value||14));
-  el('#start').value = fmt(d); reload();
-});
-el('#next').addEventListener('click', ()=>{
-  const d = new Date(el('#start').value || Date.now());
-  d.setDate(d.getDate()+Number(el('#days').value||14));
-  el('#start').value = fmt(d); reload();
-});
-el('#days').addEventListener('change', reload);
-el('#start').addEventListener('change', reload);
-el('#compact').addEventListener('change', ()=> el('#grid').classList.toggle('compact', el('#compact').checked));
+function fmtNum(v){ return (v===null||v===undefined||v==='')?'':(Math.round(Number(v)*10)/10).toString(); }
+function round1(v){ return Math.round(v*10)/10; }
+function labelOf(field){ return field==='plan'?'計画':(field==='today_plan'?'当日予定':'実績'); }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
-/* ========= 初期化 ========= */
-(function init(){
-  const t = new Date();
-  el('#start').value = fmt(t);
-  reload();
+/* -------------- DnD (カード) -------------- */
+function enableCardDnD(card){
+  card.addEventListener('dragstart', e=>{
+    card.classList.add('dragging');
+    e.dataTransfer.setData('text/card-id', card.dataset.id);
+    e.dataTransfer.effectAllowed='move';
+  });
+  card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+}
+function enableLaneDnD(lane){
+  lane.addEventListener('dragover', e=>{
+    if(!e.dataTransfer.types.includes('text/card-id')) return;
+    e.preventDefault();
+    const after = getDragAfterElement(lane, e.clientY);
+    lane.classList.add('dragover');
+    if(after==null) lane.appendChild($('.drop-indicator', lane));
+    else lane.insertBefore($('.drop-indicator', lane), after);
+  });
+  lane.addEventListener('dragleave', ()=> lane.classList.remove('dragover'));
+  lane.addEventListener('drop', async e=>{
+    const id = e.dataTransfer.getData('text/card-id');
+    const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+    const after = getDragAfterElement(lane, e.clientY);
+    if(after==null) lane.appendChild(card); else lane.insertBefore(card, after);
+    lane.classList.remove('dragover');
+    $('.drop-indicator', lane).remove();
+
+    // 並び直し → order を10刻みで振り直し、移動カードは date/assignee も更新
+    const cards = $$('.card', lane);
+    const updates = [];
+    cards.forEach((c, i)=>{
+      const newOrder = (i+1)*10;
+      if(Number(c.dataset.order)!==newOrder){
+        c.dataset.order = newOrder;
+        const payload = { id: c.dataset.id, order: newOrder };
+        if(c===card){ // 移動したカードは 対象セルの担当者/日付も更新
+          payload.assignee_id = lane.dataset.userId;
+          payload.date        = lane.dataset.date;
+        }
+        updates.push(payload);
+      }else if(c===card){
+        // order同じでもセル移動のみのケースをケア
+        updates.push({ id: c.dataset.id, assignee_id: lane.dataset.userId, date: lane.dataset.date });
+      }
+    });
+    try{
+      showSaving(true);
+      for(const u of updates) await updateNotion(u);
+      // 合計再計算（元セル/先セル）
+      updateTotals(lane);
+      const prevCell = card._prevCell || null;
+      if(prevCell && prevCell!==lane) updateTotals(prevCell);
+      toastOk();
+    }catch(e){ alert('更新に失敗しました'); }
+    finally{ showSaving(false); card._prevCell=null; }
+  });
+  // ドラッグ開始時に元セル保存
+  lane.addEventListener('dragstart', e=>{
+    const id = e.target?.closest?.('.card')?.dataset?.id;
+    if(id){
+      const el = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+      if(el) el._prevCell = el.closest('.lane');
+    }
+  }, true);
+}
+function getDragAfterElement(container, y){
+  const els = $$('.card', container).filter(e=>!e.classList.contains('dragging'));
+  let closest = null; let closestOff = Number.NEGATIVE_INFINITY;
+  for(const el of els){
+    const box = el.getBoundingClientRect();
+    const off = y - box.top - box.height/2;
+    if(off<0 && off>closestOff){ closestOff=off; closest=el; }
+  }
+  return closest;
+}
+
+/* -------------- Row order (担当者順) -------------- */
+function loadRowOrder(defaultIds){
+  const saved = localStorage.getItem('rowOrder');
+  if(!saved) return defaultIds;
+  const arr = JSON.parse(saved);
+  // defaultに無いidを削除、足りないidを末尾追加
+  const filtered = arr.filter(id=>defaultIds.includes(id));
+  for(const id of defaultIds) if(!filtered.includes(id)) filtered.push(id);
+  return filtered;
+}
+function saveRowOrder(ids){ localStorage.setItem('rowOrder', JSON.stringify(ids)); }
+
+/* -------------- boot -------------- */
+(async function(){
+  // UI
+  const start = $('#start'); const days = $('#days'); const reloadBtn = $('#reload');
+  const today = new Date().toISOString().slice(0,10);
+  start.value = new URL(location.href).searchParams.get('start') || today;
+  days.value  = new URL(location.href).searchParams.get('days')  || '14';
+
+  async function reload(){
+    const s = start.value; const d = days.value;
+    history.replaceState(null,'', `?start=${s}&days=${d}`);
+    showSaving(true);
+    try{
+      const data = await fetchGrid(s, d);
+      STATE = data;
+      buildBoard();
+    }finally{ showSaving(false); }
+  }
+  reloadBtn.addEventListener('click', reload);
+  await reload();
 })();
 </script>
-</body>
-</html>
