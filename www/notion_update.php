@@ -1,1 +1,1 @@
-<?php require __DIR__ . '/../app/public/notion_update.php';
+<?php require __DIR__ . '/../public/notion_update.php';
