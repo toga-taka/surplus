@@ -6,87 +6,86 @@
 <title>Surplus Board</title>
 <style>
   :root{
-    --left: 220px;         /* 左の担当者列の幅 */
+    --left: 240px;         /* 左の担当者列の幅 */
     --col: 300px;          /* 日付列の幅 */
     --gap: 8px;
     --bd:#d1d5db;
     --muted:#6b7280;
-    --toolbarH: 48px;
+    --toolbarH: 56px;      /* ツールバーの高さ（上部固定） */
+    --datesH: 60px;        /* 日付ヘッダの高さ（上部固定） */
+    --laneMinH: 150px;     /* 1マスの最小高さ */
   }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",Helvetica,Arial;background:#fff}
+  body{margin:0;font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", Helvetica, Arial;background:#fff;}
 
-  /* ツールバー（横スクロールの外側に置く＝常に固定） */
+  /* ツールバー（常に上固定） */
   .toolbar{
-    position: sticky; top:0; left:0; z-index:120;
+    position: sticky; top:0; z-index:120;
     display:flex; gap:8px; align-items:center;
     padding:10px 12px; background:#fff; border-bottom:1px solid var(--bd);
     height: var(--toolbarH);
   }
   .toolbar input, .toolbar select, .toolbar button{
-    padding:6px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff;
+    padding:8px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff;
   }
   .toolbar .grow{flex:1}
 
-  /* 横スクロールはこの中だけに閉じ込める */
-  .wrap{height:calc(100% - var(--toolbarH));}
-  .hscroll{
-    height:100%;
-    overflow:auto;                    /* ← 横/縦スクロールはここ */
+  /* コンテンツ全体の余白（上に日付ヘッダの分だけ段差を確保） */
+  .wrap{
     padding:8px;
-    background:#fff;
+    padding-top: calc(var(--datesH) + 8px); /* ツールバー直下に固定の日付ヘッダが来るので、その分を空ける */
   }
 
-  /* 日付ヘッダ（縦に固定／横はグリッドと一緒に動く） */
+  /* 日付ヘッダ（固定・横スクロール追従・カードより上に表示） */
   .dates{
-    position: sticky; top: calc(var(--toolbarH)); /* ビューポート基準で固定 */
-    z-index:110;                                   /* カードより上 */
-    background:#fff;
+    position: sticky; 
+    top: var(--toolbarH); 
+    z-index:110; 
+    background:#fff; 
     border-bottom:1px solid var(--bd);
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
-    /* ヘッダ下にうっすら影を入れて“透け”防止 */
-    box-shadow: 0 3px 8px rgba(0,0,0,.05);
-    pointer-events: none; /* クリックは素通り */
+    height: var(--datesH);
+    align-items:stretch;
+    /* ヘッダ上にカードが被らないように最前面に重ねる */
   }
   .dates .blank{
     position:sticky; left:0; z-index:111; background:#fff; border-right:1px solid var(--bd);
-    pointer-events:auto; display:flex; align-items:center; padding:8px 10px; font-weight:600;
+    display:flex; align-items:center; padding:8px 10px; font-weight:700;
   }
   .dateHead{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
-    padding:8px 10px; border-left:1px dashed var(--bd); background:#fff;
+    padding:8px 10px; border-left:1px dashed var(--bd);
   }
-  .dateHead .d{ font-weight:600; }
+  .dateHead .d{ font-weight:700; }
   .dateHead .w{ color:var(--muted); font-size:12px; }
   .dateHead.sun .d, .dateHead.sun .w{ color:#dc2626; }
   .dateHead.sat .d, .dateHead.sat .w{ color:#2563eb; }
   .dateHead .sum{
-    font-size:12px; background:#f3f4f6; border:1px solid var(--bd); border-radius:999px; padding:2px 8px;
-    white-space:nowrap;
+    font-size:12px; background:#f3f4f6; border:1px solid var(--bd); border-radius:999px; padding:2px 8px; white-space:nowrap;
   }
 
   /* 行（担当者ごと） */
-  .rows{ display:flex; flex-direction:column; gap:var(--gap); padding-top:8px; }
+  .rows{ display:flex; flex-direction:column; gap:var(--gap); }
   .row{
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
     align-items: stretch;
-    border-top:2px solid var(--bd);          /* ← 担当者の上線（先頭にも付く） */
-    background:#fff;
   }
   .name{
-    position: sticky; left:0; z-index:100; background:#fff;
-    padding:8px 10px; border-right:1px solid var(--bd); min-height:48px; display:flex; align-items:center; gap:8px;
+    position: sticky; left:0; z-index:30; background:#fff;
+    padding:8px 10px; border-right:1px solid var(--bd); min-height:var(--laneMinH); 
+    display:flex; flex-direction:column; gap:6px; justify-content:flex-start;
+    border-bottom:1px solid var(--bd); /* 担当者の下線 */
   }
-  .name .label{ font-weight:700; }
-  .name .tot{ margin-left:auto; font-size:12px; color:var(--muted); }
+  .name .label{ font-weight:800; }
+  .name .tot{ font-size:12px; color:var(--muted); }
 
-  /* 各マス（枠は全日付に必ず表示される） */
+  /* 各マス（境界が常に見えるよう白背景+枠線） */
   .lane{
     position:relative;
-    min-height:140px; padding:8px; border:1px solid var(--bd); border-radius:10px; background:#fff;
+    min-height:var(--laneMinH); padding:8px; border:1px solid var(--bd); border-radius:10px; background:#fff;
   }
   .laneSum{
     position:absolute; top:6px; right:8px;
@@ -96,20 +95,22 @@
 
   /* カード */
   .card{
-    position:relative; z-index:1;
-    margin-top:28px;
+    position:relative; margin-top:30px;
     border:1px solid var(--bd); border-radius:10px; padding:10px 36px 10px 28px; background:#fff;
     box-shadow:0 1px 2px rgba(0,0,0,.06);
+  }
+  .card .handle{
+    position:absolute; left:6px; top:8px; cursor:grab; user-select:none; color:#6b7280;
   }
   .card .editBtn{
     position:absolute; right:6px; top:6px; border:1px solid var(--bd); background:#fff; border-radius:8px;
     padding:2px 8px; font-size:12px; cursor:pointer;
   }
-  .title{ font-weight:600; margin-bottom:4px; padding-right:48px; }
+  .title{ font-weight:700; margin-bottom:4px; padding-right:48px; }
   .meta{ color:var(--muted); font-size:12px; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .pills{ display:flex; gap:6px; flex-wrap:wrap; }
   .pill{
-    font-size:12px; border:1px solid var(--bd); border-radius:999px; padding:2px 8px; background:#f9fafb;
+    font-size:12px; border:1px solid var(--bd); border-radius:999px; padding:2px 8px; background:#f9fafb; white-space:nowrap;
   }
   .pill.plan{ background:#f0fdf4; border-color:#bbf7d0; }
   .pill.today{ background:#fff7ed; border-color:#fed7aa; }
@@ -121,7 +122,7 @@
 
   /* トースト */
   .toast{
-    position:fixed; right:12px; bottom:12px; z-index:200;
+    position:fixed; right:12px; bottom:12px; z-index:130;
     background:#111827; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.18);
     display:none;
   }
@@ -129,18 +130,36 @@
 
   /* 通信中オーバーレイ */
   .overlay{
-    position:fixed; inset:0; z-index:190; display:none; align-items:center; justify-content:center;
+    position:fixed; inset:0; z-index:140; display:none; align-items:center; justify-content:center;
     background:rgba(255,255,255,.6); backdrop-filter:saturate(1.2) blur(1.5px);
   }
   .overlay.show{ display:flex; }
   .overlay .bubble{
     background:#111827; color:#fff; padding:14px 20px; border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.25);
-    font-weight:600;
+    font-weight:700;
   }
+
+  /* 並び替え/非表示モーダル */
+  .modal{ position:fixed; inset:0; z-index:135; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.25); }
+  .modal.show{ display:flex; }
+  .panel{
+    width:min(480px,92vw); background:#fff; border-radius:14px; border:1px solid var(--bd); padding:14px;
+  }
+  .panel h3{ margin:0 0 10px 0; }
+  .uList{ list-style:none; margin:0; padding:0; }
+  .uList li{
+    display:grid; grid-template-columns: 1fr auto auto; align-items:center; gap:8px;
+    padding:8px 10px; border:1px solid var(--bd); border-radius:8px; background:#fff; margin-bottom:8px;
+  }
+  .uList li .drag{ cursor:grab; color:#6b7280; }
+  .uList li[draggable="true"]{ user-select:none; }
+  .uList .ghost{ opacity:.5; }
+  .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+  .btn{ padding:8px 12px; border:1px solid var(--bd); border-radius:8px; background:#fff; cursor:pointer; }
+  .btn.primary{ background:#2563eb; color:#fff; border-color:#2563eb; }
 </style>
 </head>
 <body>
-  <!-- ツールバー（横スクロールの外） -->
   <div class="toolbar">
     <label>開始日 <input type="date" id="start"></label>
     <label>日数
@@ -148,46 +167,97 @@
         <option>7</option><option selected>14</option><option>21</option><option>28</option><option>60</option>
       </select>
     </label>
-    <button id="reload">更新</button>
+    <button class="btn" id="reload">更新</button>
+    <button class="btn" id="openReorder">担当者並び替え / 非表示…</button>
     <div class="grow"></div>
     <span id="status" style="color:#6b7280"></span>
   </div>
 
-  <!-- 横/縦スクロール領域 -->
   <div class="wrap">
-    <div class="hscroll" id="scroller">
-      <div class="dates" id="dates"></div>
-      <div class="rows"  id="rows"></div>
-    </div>
+    <div class="dates" id="dates"></div>
+    <div class="rows" id="rows"></div>
   </div>
 
   <div class="toast" id="toast">保存しました</div>
   <div class="overlay" id="overlay"><div class="bubble" id="overlayText">通信中…</div></div>
+
+  <!-- 編集モーダル -->
+  <div class="modal" id="modal">
+    <div class="panel">
+      <h3>カードを編集</h3>
+      <div class="form" style="display:grid; gap:8px;">
+        <label>日付 <input type="date" id="f_date"></label>
+        <label>担当者 <select id="f_assignee"></select></label>
+        <label>計画 <input type="number" step="0.25" id="f_plan"></label>
+        <label>当日予定 <input type="number" step="0.25" id="f_today"></label>
+        <label>実績 <input type="number" step="0.25" id="f_actual"></label>
+        <label>残時間 <input type="number" step="0.25" id="f_remain"></label>
+      </div>
+      <div class="actions">
+        <button class="btn" id="cancel">キャンセル</button>
+        <button class="btn primary" id="save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 担当者 並び替え/非表示モーダル -->
+  <div class="modal" id="reorderModal">
+    <div class="panel">
+      <h3>担当者の並び替え / 非表示</h3>
+      <ul class="uList" id="uList"></ul>
+      <div class="actions">
+        <button class="btn" id="reorderCancel">閉じる</button>
+        <button class="btn primary" id="reorderSave">保存</button>
+      </div>
+    </div>
+  </div>
 
 <script>
 /* ====== ユーティリティ ====== */
 const el = s=>document.querySelector(s);
 const els = s=>Array.from(document.querySelectorAll(s));
 const fmt = n => (n==null || n==='') ? '0' : Number(n).toFixed(2);
-function showToast(msg){ const t=el('#toast'); t.textContent=msg||'保存しました'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1800); }
-function showOverlay(text){ if(text) el('#overlayText').textContent=text; el('#overlay').classList.add('show'); }
-function hideOverlay(){ el('#overlay').classList.remove('show'); }
-function qp(){ const u=new URL(location.href); return { start: u.searchParams.get('start') || new Date().toISOString().slice(0,10), days: Math.max(1, Math.min(60, parseInt(u.searchParams.get('days')||14,10))) }; }
-async function getJSON(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); }
+
+function showToast(msg){
+  const t=el('#toast'); t.textContent=msg||'保存しました';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function showOverlay(text){
+  if(text) el('#overlayText').textContent = text;
+  el('#overlay').classList.add('show');
+}
+function hideOverlay(){
+  el('#overlay').classList.remove('show');
+}
+function queryParams(){
+  const u=new URL(location.href);
+  return {
+    start: u.searchParams.get('start') || new Date().toISOString().slice(0,10),
+    days:  Math.max(1, Math.min(60, parseInt(u.searchParams.get('days')||14,10)))
+  };
+}
+async function getJSON(url){
+  const r=await fetch(url,{cache:'no-store'});
+  if(!r.ok) throw new Error(`${url}: ${r.status}`);
+  return r.json();
+}
+const storageKey = (name)=>`surplus_${name}`;
 
 /* ====== データ ====== */
 let users=[], dates=[], items=[];
 let userMap=new Map(); // id -> name
 
-/* ====== ヘッダ/行 ====== */
+/* ====== ヘッダ/行構築 ====== */
 function buildHeaders(){
   const dWrap=el('#dates');
   dWrap.innerHTML='';
   dWrap.style.setProperty('--days', String(dates.length));
+
   const blank=document.createElement('div');
   blank.className='blank';
   blank.textContent='担当者 / 日付';
   dWrap.appendChild(blank);
+
   for(const d of dates){
     const box=document.createElement('div');
     box.className='dateHead';
@@ -205,19 +275,31 @@ function buildHeaders(){
   }
 }
 
+function visibleUsers(all){
+  const hidden = loadHiddenSet();
+  return all.filter(u => !hidden.has(u.id));
+}
 function buildRows(){
   const rWrap=el('#rows');
   rWrap.innerHTML='';
   rWrap.style.setProperty('--days', String(dates.length));
-  for(const u of users){
+
+  const vUsers = visibleUsers(users);
+  for(let i=0;i<vUsers.length;i++){
+    const u=vUsers[i];
     const row=document.createElement('div');
     row.className='row';
 
+    // 左：担当者名（横書き）+ 集計（下）
     const name=document.createElement('div');
     name.className='name';
-    name.innerHTML=`<div class="label">${u.name}</div><div class="tot" id="user-sum-${u.id}"></div>`;
+    name.innerHTML=`
+      <div class="label">${u.name}</div>
+      <div class="tot" id="user-sum-${u.id}">計:0.00 / 予:0.00 / 実:0.00</div>
+    `;
     row.appendChild(name);
 
+    // 各マス
     for(const d of dates){
       const lane=document.createElement('div');
       lane.className='lane';
@@ -235,7 +317,7 @@ function buildRows(){
   }
 }
 
-/* ====== カード生成/配置 ====== */
+/* ====== カード ====== */
 function makeCard(it){
   const card=document.createElement('div');
   card.className='card';
@@ -250,6 +332,7 @@ function makeCard(it){
   const plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining);
 
   card.innerHTML=`
+    <div class="handle" title="ドラッグ">≡</div>
     <button class="editBtn" type="button">編集</button>
     <div class="title">${title}</div>
     <div class="meta">${customer}</div>
@@ -261,8 +344,7 @@ function makeCard(it){
     </div>
   `;
   card.querySelector('.editBtn').addEventListener('click', e=>{
-    e.stopPropagation();
-    alert('編集UIは既存のまま維持（本件は表示/固定のみの修正要求のため、機能は変更していません）');
+    e.stopPropagation(); openEditor(card);
   });
   card.addEventListener('dragstart', onCardDragStart);
   card.addEventListener('dragend', onCardDragEnd);
@@ -270,8 +352,10 @@ function makeCard(it){
 }
 
 function placeCards(){
+  // 一旦全削除
   els('.lane').forEach(l=>{ [...l.querySelectorAll('.card')].forEach(c=>c.remove()); });
 
+  // ソート：担当者・日付・順番
   const sorted=[...items].sort((a,b)=>{
     if(a.assignee_id!==b.assignee_id) return (a.assignee_id||'').localeCompare(b.assignee_id||'');
     if(a.date!==b.date) return (a.date||'').localeCompare(b.date||'');
@@ -304,72 +388,257 @@ function recalcSums(){
     const s=byDate.get(d.date)||{plan:0,today:0,actual:0};
     const b=el(`#sum-${d.date}`); if(b) b.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`;
   });
-  // 各マス／担当者合計
-  users.forEach(u=>{
-    const us=byUser.get(u.id)||{plan:0,today:0,actual:0};
-    const lab=el(`#user-sum-${u.id}`); if(lab) lab.textContent=`計:${fmt(us.plan)} / 予:${fmt(us.today)} / 実:${fmt(us.actual)}`;
+  // 各マス
+  visibleUsers(users).forEach(u=>{
     dates.forEach(d=>{
       const key=`${u.id}|${d.date}`;
       const s=byLane.get(key)||{plan:0,today:0,actual:0};
       const lane=document.querySelector(`.lane[data-assignee="${u.id}"][data-date="${d.date}"]`);
       if(lane){ const badge=lane.querySelector('.laneSum'); if(badge) badge.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`; }
     });
+    // 担当者合計
+    const us=byUser.get(u.id)||{plan:0,today:0,actual:0};
+    const lab=el(`#user-sum-${u.id}`); if(lab) lab.textContent=`計:${fmt(us.plan)} / 予:${fmt(us.today)} / 実:${fmt(us.actual)}`;
   });
 }
 
-/* ====== DnD（カード移動のプレースホルダのみ維持） ====== */
+/* ====== DnD（カード移動・並べ替え） ====== */
 let dragCard=null, placeholderEl=null;
-function placeholder(){ if(!placeholderEl){ const ph=document.createElement('div'); ph.className='placeholder'; placeholderEl=ph; } return placeholderEl; }
+function placeholder(){
+  if(!placeholderEl){ const ph=document.createElement('div'); ph.className='placeholder'; placeholderEl=ph; }
+  return placeholderEl;
+}
 function clearPlaceholder(){ if(placeholderEl?.parentNode) placeholderEl.parentNode.removeChild(placeholderEl); placeholderEl=null; }
 function getInsertBefore(lane, mouseY){
   const cards=[...lane.querySelectorAll('.card:not(.dragging)')];
   for(const c of cards){ const r=c.getBoundingClientRect(); if(mouseY < r.top + r.height/2) return c; }
   return null;
 }
-function onCardDragStart(e){ dragCard=e.currentTarget; dragCard.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', dragCard.dataset.id||''); }
+function onCardDragStart(e){
+  dragCard=e.currentTarget;
+  dragCard.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain', dragCard.dataset.id||'');
+}
 function onCardDragEnd(){ clearPlaceholder(); dragCard?.classList.remove('dragging'); dragCard=null; }
 function enableLaneDnD(){
   els('.lane').forEach(lane=>{
     lane.addEventListener('dragover', e=>{
-      if(!dragCard) return; e.preventDefault();
+      if(!dragCard) return;
+      e.preventDefault();
       const ph=placeholder();
       const before=getInsertBefore(lane, e.clientY);
       if(before) lane.insertBefore(ph, before); else lane.appendChild(ph);
     });
-    lane.addEventListener('drop', e=>{
-      e.preventDefault(); clearPlaceholder(); onCardDragEnd();
-      // 本件は表示/固定の修正のみなので、サーバ更新は触りません
+    lane.addEventListener('drop', async e=>{
+      e.preventDefault(); if(!dragCard) return;
+      const ph=placeholderEl;
+      if(ph && ph.parentNode===lane){ lane.insertBefore(dragCard, ph); } else { lane.appendChild(dragCard); }
+      const siblings=[...lane.querySelectorAll('.card')];
+      const idx=siblings.indexOf(dragCard);
+      const prev=siblings[idx-1]||null, next=siblings[idx+1]||null;
+      const a=prev?Number(prev.dataset.order||0):0;
+      const b=next?Number(next.dataset.order||0):(a+20);
+      const newOrder=Math.floor((a+b)/2);
+
+      await patchCard({ id: dragCard.dataset.id, assignee_id: lane.dataset.assignee, date: lane.dataset.date, order: newOrder });
+
+      dragCard.dataset.order=String(newOrder);
+      const it=items.find(x=>x.id===dragCard.dataset.id);
+      if(it){ it.assignee_id=lane.dataset.assignee; it.date=lane.dataset.date; it.order=newOrder; }
+
+      clearPlaceholder(); onCardDragEnd(); recalcSums();
     });
   });
 }
 
+/* ====== 編集モーダル ====== */
+let editingId=null;
+function openEditor(card){
+  const id=card.dataset.id;
+  const it=items.find(x=>x.id===id);
+  if(!it) return;
+  editingId=id;
+
+  el('#f_date').value = it.date || '';
+  const sel=el('#f_assignee'); sel.innerHTML='';
+  for(const u of users){
+    const opt=document.createElement('option'); opt.value=u.id; opt.textContent=u.name;
+    if(u.id===it.assignee_id) opt.selected=true; sel.appendChild(opt);
+  }
+  el('#f_plan').value   = it.plan??'';
+  el('#f_today').value  = it.today_plan??'';
+  el('#f_actual').value = it.actual??'';
+  el('#f_remain').value = it.remaining??'';
+  el('#modal').classList.add('show');
+}
+function closeEditor(){ el('#modal').classList.remove('show'); editingId=null; }
+el('#cancel').addEventListener('click', closeEditor);
+el('#modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeEditor(); });
+el('#save').addEventListener('click', async ()=>{
+  if(!editingId) return;
+  const it=items.find(x=>x.id===editingId); if(!it) return;
+  const payload={
+    id: editingId,
+    date: valOrEmpty(el('#f_date').value),
+    assignee_id: valOrEmpty(el('#f_assignee').value),
+    plan: numOrNull(el('#f_plan').value),
+    today_plan: numOrNull(el('#f_today').value),
+    actual: numOrNull(el('#f_actual').value),
+    remaining: numOrNull(el('#f_remain').value)
+  };
+  await patchCard(payload);
+  // ローカル反映
+  if(payload.date!==undefined) it.date=payload.date;
+  if(payload.assignee_id!==undefined) it.assignee_id=payload.assignee_id;
+  if(payload.plan!==undefined) it.plan=payload.plan;
+  if(payload.today_plan!==undefined) it.today_plan=payload.today_plan;
+  if(payload.actual!==undefined) it.actual=payload.actual;
+  if(payload.remaining!==undefined) it.remaining=payload.remaining;
+  placeCards(); closeEditor(); showToast('更新しました');
+});
+function valOrEmpty(v){ return (v===''?undefined:v); }
+function numOrNull(v){ if(v===''||v==null) return null; const n=Number(v); return isNaN(n)?null:n; }
+
+/* ====== サーバ更新（通信中オーバーレイ対応） ====== */
+async function patchCard(changes){
+  // undefined を送らない
+  const payload={}; for(const k of Object.keys(changes)){ if(changes[k]!==undefined) payload[k]=changes[k]; }
+  el('#status').textContent='保存中…';
+  showOverlay('通信中…');
+  try{
+    const r=await fetch('/notion_update.php',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'},
+      body: JSON.stringify(payload)
+    });
+    const j=await r.json().catch(()=> ({}));
+    if(!r.ok || (j.status && j.status!==200)){ console.error('update fail', j); showToast('保存に失敗しました'); }
+    else { showToast('保存しました'); }
+  }finally{
+    el('#status').textContent='';
+    hideOverlay();
+  }
+}
+
+/* ====== 担当者 並び替え/非表示 ====== */
+function loadUserOrder(){
+  const raw=localStorage.getItem(storageKey('userOrder'));
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch{ return null; }
+}
+function saveUserOrder(){
+  const order=users.map(u=>u.id);
+  localStorage.setItem(storageKey('userOrder'), JSON.stringify(order));
+}
+function applyUserOrder(){
+  const order=loadUserOrder();
+  if(!order) return;
+  const idx=new Map(order.map((id,i)=>[id,i]));
+  users.sort((a,b)=>{
+    const ia=idx.has(a.id)?idx.get(a.id):1e9;
+    const ib=idx.has(b.id)?idx.get(b.id):1e9;
+    return ia-ib;
+  });
+}
+function loadHiddenSet(){
+  const raw=localStorage.getItem(storageKey('hiddenUsers'));
+  if(!raw) return new Set();
+  try{ return new Set(JSON.parse(raw)); }catch{ return new Set(); }
+}
+function saveHiddenSet(set){
+  localStorage.setItem(storageKey('hiddenUsers'), JSON.stringify([...set]));
+}
+el('#openReorder').addEventListener('click', ()=>{
+  const hidden = loadHiddenSet();
+  const ul=el('#uList'); ul.innerHTML='';
+  for(const u of users){
+    const li=document.createElement('li');
+    li.setAttribute('draggable','true');
+    li.dataset.id=u.id;
+    li.innerHTML=`
+      <span>${u.name}</span>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:${hidden.has(u.id)?'#dc2626':'#374151'}">
+        <input type="checkbox" class="chk-hide"${hidden.has(u.id)?' checked':''}> 非表示
+      </label>
+      <span class="drag" title="ドラッグで並び替え">≡</span>
+    `;
+    ul.appendChild(li);
+  }
+  setupDragList(ul);
+  reorderModal.classList.add('show');
+});
+el('#reorderCancel').addEventListener('click', ()=>reorderModal.classList.remove('show'));
+el('#reorderSave').addEventListener('click', ()=>{
+  const ul=el('#uList');
+  // 並び順保存
+  const ids=[...ul.children].map(li=>li.dataset.id);
+  const map=new Map(users.map(u=>[u.id,u]));
+  users = ids.map(id=>map.get(id)).filter(Boolean);
+  saveUserOrder();
+  // 非表示保存
+  const hidden=new Set();
+  [...ul.children].forEach(li=>{
+    const id=li.dataset.id;
+    const chk=li.querySelector('.chk-hide');
+    if(chk && chk.checked) hidden.add(id);
+  });
+  saveHiddenSet(hidden);
+  // 再描画
+  buildRows(); placeCards();
+  reorderModal.classList.remove('show');
+});
+function setupDragList(ul){
+  let dragging=null;
+  ul.addEventListener('dragstart', e=>{
+    const li=e.target.closest('li'); if(!li) return;
+    dragging=li; li.classList.add('ghost'); e.dataTransfer.effectAllowed='move';
+  });
+  ul.addEventListener('dragend', ()=>{
+    if(dragging) dragging.classList.remove('ghost'); dragging=null;
+  });
+  ul.addEventListener('dragover', e=>{
+    if(!dragging) return; e.preventDefault();
+    const after=getDragAfterElement(ul, e.clientY);
+    if(after==null) ul.appendChild(dragging); else ul.insertBefore(dragging, after);
+  });
+}
+function getDragAfterElement(container, y){
+  const els=[...container.querySelectorAll('li:not(.ghost)')];
+  let closest=null, closestOffset=Number.NEGATIVE_INFINITY;
+  for(const c of els){
+    const box=c.getBoundingClientRect();
+    const offset=y - box.top - box.height/2;
+    if(offset<0 && offset>closestOffset){ closestOffset=offset; closest=c; }
+  }
+  return closest;
+}
+
 /* ====== 初期化 ====== */
 async function bootstrap(){
-  const q=qp();
-  el('#start').value = q.start;
-  el('#days').value  = String(q.days);
+  const qp=queryParams();
+  el('#start').value = qp.start;
+  el('#days').value  = String(qp.days);
 
   showOverlay('読み込み中…');
   try{
     const [u, g] = await Promise.all([
-      getJSON('/notion_users.php'),
-      getJSON(`/notion_grid.php?start=${encodeURIComponent(q.start)}&days=${q.days}`)
+      getJSON('/notion_users.php'),                                     // 全員リスト
+      getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`) // 日付/カード
     ]);
 
-    // 担当者は“全員表示”優先：/notion_users.php と items に出る人の和集合
-    const userMapById = new Map();
-    (u.users||[]).forEach(x=>userMapById.set(x.id, {id:x.id, name:x.name}));
-    (g.users||[]).forEach(x=>userMapById.set(x.id, {id:x.id, name:x.name}));
-    (g.items||[]).forEach(it=>{
-      if(it.assignee_id && !userMapById.has(it.assignee_id)){
-        userMapById.set(it.assignee_id, {id:it.assignee_id, name:it.assignee_id});
-      }
-    });
-    users = Array.from(userMapById.values());
+    // ユーザーは union（欠落防止）。同一IDの重複排除。
+    const m = new Map();
+    (u.users||[]).forEach(x=>m.set(x.id, {id:x.id, name:x.name}));
+    (g.users||[]).forEach(x=>m.set(x.id, {id:x.id, name:x.name}));
+    users = [...m.values()];
 
     dates = g.dates || [];
     items = g.items || [];
     userMap = new Map(users.map(x=>[x.id, x.name]));
+
+    // 並び順適用
+    applyUserOrder();
 
     buildHeaders();
     buildRows();
@@ -378,6 +647,7 @@ async function bootstrap(){
     hideOverlay();
   }
 }
+
 el('#reload').addEventListener('click', ()=>{
   const start=el('#start').value || new Date().toISOString().slice(0,10);
   const days = parseInt(el('#days').value,10)||14;
@@ -386,6 +656,7 @@ el('#reload').addEventListener('click', ()=>{
   url.searchParams.set('days', String(days));
   location.href = url.toString();
 });
+
 bootstrap().catch(err=>{
   console.error(err);
   hideOverlay();
