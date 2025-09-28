@@ -1,337 +1,432 @@
 <!doctype html>
-<meta charset="utf-8">
-<title>Notion Board</title>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ボード</title>
 <style>
-  :root { --cell-pad:8px; --gap:8px; --lane-h: 220px; --left-w: 220px; --hdr-h: 36px; }
-  body { margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Hiragino Sans","Noto Sans JP",sans-serif; }
-  .topbar { padding:10px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #eee; position:sticky; top:0; background:#fff; z-index:10; }
-  input,select,button { padding:6px 8px; }
-  .board { display:grid; grid-template-columns: var(--left-w) 1fr; }
-  .dates { display:grid; grid-auto-flow:column; grid-auto-columns: 260px; position:sticky; top:36px; background:#fff; z-index:5; border-bottom:1px solid #eee; }
-  .dateHdr { height:var(--hdr-h); display:flex; align-items:center; justify-content:center; border-left:1px solid #eee; border-right:1px solid #eee; font-weight:600; }
-  .dateHdr.sat { background:#eef6ff; }
-  .dateHdr.sun { background:#ffeef0; color:#c00; }
-  .rows { display:grid; grid-auto-rows: minmax(var(--lane-h), auto); }
-  .row { display:grid; grid-template-columns: var(--left-w) 1fr; border-bottom:1px solid #f1f1f1; }
-  .userCell { border-right:1px solid #eee; padding:10px; display:flex; align-items:center; gap:8px; position:sticky; left:0; background:#fff; z-index:3; }
-  .row-handle { cursor:grab; user-select:none; font-size:18px; line-height:1; opacity:.5; }
-  .grid { display:grid; grid-auto-flow:column; grid-auto-columns: 260px; }
-  .cell { border-left:1px solid #eee; border-right:1px solid #eee; padding:var(--cell-pad); position:relative; }
-  .totals { position:absolute; top:4px; right:6px; font-size:12px; background:#fff; padding:2px 6px; border-radius:10px; border:1px solid #e5e5e5; }
-  .lane { display:flex; flex-direction:column; gap:var(--gap); margin-top: 4px; padding-top: var(--hdr-h); }
-  .card { border:1px solid #e5e5e5; border-radius:10px; padding:8px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); cursor:grab; }
-  .dragging { opacity:.6; }
-  .title { font-weight:600; margin-bottom:4px; }
-  .sub { font-size:12px; color:#666; margin-bottom:6px; }
-  .pills { display:flex; gap:6px; flex-wrap:wrap; }
-  .pill { font-size:12px; border-radius:999px; padding:2px 8px; border:1px solid #e5e5e5; background:#fafafa; cursor:pointer; }
-  .pill.editing { outline:2px solid #4098ff; background:#fff; }
-  .drop-indicator { height:6px; margin:2px 0; border-radius:3px; background:#cfe3ff; display:none; }
-  .lane.dragover .drop-indicator { display:block; }
-  .saving { position:fixed; right:12px; bottom:12px; padding:8px 12px; background:#111; color:#fff; border-radius:8px; opacity:.9; display:none; }
-  .saving.show { display:block; }
+:root{
+  --bd:#e5e7eb;
+  --muted:#6b7280;
+  --red:#ef4444;
+  --blue:#3b82f6;
+  --bg:#f8fafc;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;background:#fff;color:#111}
+header{display:flex;gap:.5rem;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--bd);position:sticky;top:0;background:#fff;z-index:5}
+header h1{margin:0 .5rem 0 0;font-size:16px}
+input[type="date"],select,button{height:30px;border:1px solid var(--bd);border-radius:6px;padding:0 .5rem;background:#fff}
+button{cursor:pointer}
+#saving{position:fixed;right:12px;bottom:12px;padding:.5rem .75rem;border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.08);opacity:0;pointer-events:none;transition:opacity .2s}
+#saving.show{opacity:1}
+#saving.ok{background:#ecfdf5;border-color:#a7f3d0}
+
+.grid{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 56px)}
+.th{display:grid;grid-template-columns:220px repeat(var(--cols),1fr);border-bottom:1px solid var(--bd)}
+.th .cell{padding:.5rem;border-right:1px solid var(--bd);background:#fff;position:sticky;top:56px;z-index:3}
+.th .cell.head{background:#fafafa;font-weight:600}
+.th .cell .badge{display:inline-block;font-size:12px;color:#111;background:#f3f4f6;border:1px solid var(--bd);border-radius:999px;padding:2px 8px;margin-left:6px}
+.th .cell.sun{color:var(--red)}
+.th .cell.sat{background:#f0f7ff}
+.th .cell.hol{color:#fff;background:#ef4444;border-color:#ef4444}
+
+.body{display:grid;grid-template-columns:220px repeat(var(--cols),1fr)}
+.rowHead{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:.5rem;display:flex;align-items:center;gap:.5rem;position:sticky;left:0;background:#fff;z-index:2}
+.rowHead .handle{cursor:grab;color:var(--muted)}
+.lane{min-height:140px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);position:relative;background:#fff}
+.lane[data-weekday="6"]{background:#f8fbff}
+.lane[data-weekday="0"]{background:#fff5f5}
+
+.card{margin:8px; padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);cursor:grab}
+.card:active{cursor:grabbing}
+.meta{display:flex;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:6px}
+.tt{font-weight:600;font-size:13px;margin-bottom:4px}
+.kvs{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.kv{font-size:12px;border:1px solid var(--bd);border-radius:999px;padding:2px 8px;background:#fafafa}
+.kv .label{color:var(--muted)}
+.kv .num[contenteditable="true"]{outline:2px solid transparent;min-width:16px;display:inline-block}
+.kv .num.edited{outline-color:#fde68a;background:#fffbeb}
+
+.ghost{border:2px dashed #a3a3a3;background:#fafafa;opacity:.8}
+.dropping{box-shadow:inset 0 0 0 2px #60a5fa}
+
+.compact .card{margin:4px;padding:6px;border-radius:6px}
+.compact .lane{min-height:100px}
 </style>
-<div class="topbar">
-  <label>開始日 <input type="date" id="start"></label>
+</head>
+<body>
+<header>
+  <h1>ボード</h1>
+  <label>開始日 <input id="start" type="date"></label>
   <label>日数
     <select id="days">
-      <option>7</option><option selected>14</option><option>30</option><option>60</option>
+      <option>7</option><option selected>14</option><option>21</option><option>28</option><option>60</option>
     </select>
   </label>
-  <button id="reload">再読込</button>
+  <button id="prev">«</button>
+  <button id="next">»</button>
+  <button id="reload">再読み込み</button>
+  <label style="margin-left:auto"><input id="compact" type="checkbox"> コンパクト</label>
+</header>
+
+<div id="saving">通信中…</div>
+
+<div id="board">
+  <div class="th" id="th"></div>
+  <div class="body" id="body"></div>
 </div>
-<div id="board" class="board"></div>
-<div id="saving" class="saving">通信中…</div>
 
 <script>
-const $ = (s, el=document)=>el.querySelector(s);
-const $$ = (s, el=document)=>Array.from(el.querySelectorAll(s));
-const saving = $('#saving');
+/* ========= helpers ========= */
+const $=(s,el=document)=>el.querySelector(s);
+const $$=(s,el=document)=>Array.from(el.querySelectorAll(s));
+const fmtW=w=>['日','月','火','水','木','金','土'][w];
+const todayStr=()=>new Date().toISOString().slice(0,10);
+function ymd(d){return d.toISOString().slice(0,10);}
+function by(q){ return document.querySelector(q); }
 
-function showSaving(show){ saving.classList.toggle('show', !!show); }
-function toastOk(){ saving.textContent='保存しました'; setTimeout(()=>saving.textContent='通信中…',1200); }
+const Saving = {
+  el: $('#saving'),
+  show(msg='通信中…'){ this.el.textContent=msg; this.el.classList.add('show'); },
+  hide(){ this.el.classList.remove('show'); this.el.classList.remove('ok'); this.el.textContent='通信中…'; },
+  ok(){ this.el.textContent='保存しました'; this.el.classList.add('ok'); setTimeout(()=>this.hide(),800); }
+};
 
-function fmtDateLabel(d, w){
-  const ymd = d.replaceAll('-','/');
-  const ww = ['日','月','火','水','木','金','土'][w];
-  return `${ymd}（${ww}）`;
+/* ========= state ========= */
+let STATE = { dates:[], users:[], items:[] };
+
+/* ========= API ========= */
+async function getGrid(start, days){
+  const r = await fetch(`/notion_grid.php?start=${start}&days=${days}`);
+  if(!r.ok) throw new Error('grid fetch failed');
+  return r.json();
 }
-
-async function fetchGrid(start, days){
-  const res = await fetch(`/notion_grid.php?start=${start}&days=${days}`);
-  return res.json();
+async function getUsers(){
+  const r = await fetch('/notion_users.php');
+  if(!r.ok) return {users:[]};
+  return r.json();
 }
-
-async function updateNotion(payload){
-  const res = await fetch('/notion_update.php',{
+async function patch(payload){
+  const r = await fetch('/notion_update.php',{
     method:'POST',
     headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'},
-    body: JSON.stringify(payload)
+    body:JSON.stringify(payload)
   });
-  let json={};
-  try { json = await res.json(); } catch(_) {}
-  if(json.status !== 200){
-    console.warn('update failed', json);
-    throw new Error('update failed');
-  }
-  return json;
+  let js=null; try{ js = await r.json(); }catch(_){}
+  if(!r.ok || (js && js.status && js.status!==200)) throw js||new Error('patch failed');
+  return js||{status:200};
 }
 
-/* -------------- render -------------- */
-let STATE = { users:[], dates:[], items:[] };
+/* ========= build ========= */
+function buildHeader(){
+  const th = $('#th');
+  th.style.setProperty('--cols', STATE.dates.length);
+  th.innerHTML='';
+  const head = document.createElement('div');
+  head.className='cell head';
+  head.textContent='担当者';
+  th.appendChild(head);
+
+  for(const d of STATE.dates){
+    const cell=document.createElement('div');
+    cell.className='cell';
+    const w = d.weekday;
+    if(w===0) cell.classList.add('sun');
+    if(w===6) cell.classList.add('sat');
+    cell.innerHTML = `
+      <div style="display:flex;align-items:baseline;gap:.5rem;">
+        <div>${d.date.replaceAll('-','/')}（${fmtW(w)}）</div>
+        <span class="badge" id="sum-${d.date}">計:0 / 予:0 / 実:0</span>
+      </div>`;
+    th.appendChild(cell);
+  }
+}
+
+function buildBody(){
+  const body = $('#body');
+  body.style.setProperty('--cols', STATE.dates.length);
+  body.innerHTML='';
+
+  // 行：必ず「全ユーザー」を出す（items が無くても）
+  for(const u of STATE.users){
+    const rh = document.createElement('div');
+    rh.className='rowHead';
+    rh.innerHTML = `<span class="handle">≡</span> <span class="name">${u.name||'(無名)'}</span>`;
+    rh.dataset.assigneeId = u.id || '';
+    body.appendChild(rh);
+
+    for(const d of STATE.dates){
+      const lane = document.createElement('div');
+      lane.className='lane';
+      lane.dataset.assigneeId = u.id || '';
+      lane.dataset.date = d.date;
+      lane.dataset.weekday = d.weekday;
+      enableLaneDnD(lane);
+      body.appendChild(lane);
+    }
+  }
+}
+
+function renderCards(){
+  // いったんクリア
+  $$('.lane').forEach(l=>l.innerHTML='');
+
+  // 合計のためのマップ date => sums
+  const sums = new Map(); // date -> {plan,today,actual}
+
+  const byKey = (a,b)=> (a.order||0)-(b.order||0);
+
+  for(const it of STATE.items.slice().sort(byKey)){
+    const lane = $(`.lane[data-assignee-id="${cssEscape(it.assignee_id||'')}"][data-date="${it.date}"]`);
+    if(!lane) continue;
+
+    const card = cardEl(it);
+    lane.appendChild(card);
+
+    const s = sums.get(it.date) || {plan:0,today:0,actual:0};
+    s.plan += Number(it.plan||0);
+    s.today += Number(it.today_plan||0);
+    s.actual += Number(it.actual||0);
+    sums.set(it.date, s);
+  }
+
+  // 合計バッジ更新
+  for(const d of STATE.dates){
+    const s = sums.get(d.date) || {plan:0,today:0,actual:0};
+    const el = by(`#sum-${d.date}`);
+    if(el) el.textContent = `計:${trim0(s.plan)} / 予:${trim0(s.today)} / 実:${trim0(s.actual)}`;
+  }
+}
 
 function buildBoard(){
-  const root = $('#board');
-  root.innerHTML='';
-  const leftCol = document.createElement('div');
-  leftCol.style.position='sticky';
-  leftCol.style.top='0';
-  leftCol.style.background='#fff';
-  leftCol.style.zIndex='5';
-  // 日付ヘッダ
-  const datesWrap = document.createElement('div');
-  datesWrap.className='dates';
-  datesWrap.style.gridColumn='2 / span 1';
-  STATE.dates.forEach(d=>{
-    const h = document.createElement('div');
-    h.className='dateHdr ' + (d.weekday===6?'sat':(d.weekday===0?'sun':'')); // 土:青, 日:赤
-    h.textContent = fmtDateLabel(d.date, d.weekday);
-    datesWrap.appendChild(h);
-  });
-
-  // 行（担当者）
-  const rowsWrap = document.createElement('div'); rowsWrap.className='rows';
-  const order = loadRowOrder(STATE.users.map(u=>u.id));
-  const usersSorted = order.map(id => STATE.users.find(u=>u.id===id)).filter(Boolean);
-
-  for(const user of usersSorted){
-    const row = document.createElement('div'); row.className='row'; row.dataset.userId=user.id;
-
-    // 左セル（担当者名＋行ハンドル）
-    const ucell = document.createElement('div'); ucell.className='userCell';
-    const grip = document.createElement('span'); grip.className='row-handle'; grip.textContent='≡';
-    grip.title='ドラッグして担当者の行順を変更';
-    grip.draggable=true;
-    grip.addEventListener('dragstart', e=>{
-      e.dataTransfer.setData('text/row-id', user.id);
-      e.dataTransfer.effectAllowed='move';
-    });
-    ucell.appendChild(grip);
-
-    const uname = document.createElement('div');
-    uname.textContent = user.name || user.id;
-    ucell.appendChild(uname);
-    row.appendChild(ucell);
-
-    // 右側のグリッド（各日付セル）
-    const grid = document.createElement('div'); grid.className='grid';
-    for(const d of STATE.dates){
-      const cell = document.createElement('div'); cell.className='cell'; cell.dataset.date=d.date;
-      // totals
-      const totals = document.createElement('div'); totals.className='totals'; totals.textContent='-/-/-';
-      cell.appendChild(totals);
-      // lane
-      const lane = document.createElement('div'); lane.className='lane'; lane.dataset.userId=user.id; lane.dataset.date=d.date;
-      const di = document.createElement('div'); di.className='drop-indicator'; lane.appendChild(di);
-
-      // items
-      const items = STATE.items
-        .filter(it=>it.assignee_id===user.id && it.date===d.date)
-        .sort((a,b)=>(a.order||0)-(b.order||0));
-      for(const it of items){
-        lane.appendChild(buildCard(it));
-      }
-      updateTotals(cell);
-
-      enableLaneDnD(lane); // ドロップで入替/移動
-      cell.appendChild(lane);
-      grid.appendChild(cell);
-    }
-    row.appendChild(grid);
-    rowsWrap.appendChild(row);
-  }
-
-  // 行並べ替え drop
-  rowsWrap.addEventListener('dragover', e=>{
-    if(!e.dataTransfer.types.includes('text/row-id')) return;
-    e.preventDefault();
-  });
-  rowsWrap.addEventListener('drop', e=>{
-    const id = e.dataTransfer.getData('text/row-id');
-    const rows = $$('.row', rowsWrap);
-    let target = e.target.closest('.row');
-    if(!target){ return; }
-    const dragging = rows.find(r=>r.dataset.userId===id);
-    if(!dragging || dragging===target) return;
-    const rect = target.getBoundingClientRect();
-    const before = (e.clientY < rect.top + rect.height/2);
-    rowsWrap.insertBefore(dragging, before ? target : target.nextSibling);
-    saveRowOrder($$('.row', rowsWrap).map(r=>r.dataset.userId));
-  });
-
-  root.appendChild(leftCol);
-  root.appendChild(datesWrap);
-  root.appendChild(rowsWrap);
+  buildHeader();
+  buildBody();
+  renderCards();
 }
 
-function buildCard(it){
-  const el = document.createElement('div'); el.className='card'; el.draggable=true;
-  el.dataset.id=it.id; el.dataset.order=it.order||0;
-  el.innerHTML = `
-    <div class="title">${escapeHtml(it.task || '(無題)')}</div>
-    <div class="sub">${escapeHtml(it.customer || '')}　${escapeHtml(it.content || '')}</div>
-    <div class="pills">
-      <span class="pill" data-field="plan"       title="計画を編集">${fmtNum(it.plan)}</span>
-      <span class="pill" data-field="today_plan" title="当日予定を編集">${fmtNum(it.today_plan)}</span>
-      <span class="pill" data-field="actual"     title="実績を編集">${fmtNum(it.actual)}</span>
+/* ========= card / edit ========= */
+function cardEl(item){
+  const div = document.createElement('div');
+  div.className='card';
+  div.draggable = true;
+  div.dataset.id = item.id;
+  div.dataset.order = item.order ?? 0;
+  enableCardDnD(div);
+
+  const customer = esc(item.customer||'');
+  const task = esc(item.task||'');
+  const content = esc(item.content||'');
+
+  div.innerHTML = `
+    <div class="tt">${task||'(タスクなし)'}</div>
+    <div class="meta">
+      ${customer?`<span>${customer}</span>`:''}
+      ${content?`<span>${content}</span>`:''}
+    </div>
+    <div class="kvs">
+      <span class="kv"><span class="label">計画</span>：
+        <span class="num" data-field="plan" contenteditable="true">${numfmt(item.plan)}</span>
+      </span>
+      <span class="kv"><span class="label">当日予定</span>：
+        <span class="num" data-field="today_plan" contenteditable="true">${numfmt(item.today_plan)}</span>
+      </span>
+      <span class="kv"><span class="label">実績</span>：
+        <span class="num" data-field="actual" contenteditable="true">${numfmt(item.actual)}</span>
+      </span>
     </div>
   `;
-  // pill クリック編集
-  $$('.pill', el).forEach(p=>{
-    p.addEventListener('click', async ()=>{
-      const field = p.dataset.field;
-      const curr = p.textContent.trim();
-      const next = prompt(`「${labelOf(field)}」を入力（空でクリア）`, curr===''?'':curr);
-      if(next===null) return;
-      let num = next.trim()==='' ? null : Number(next);
-      if(next.trim()!=='' && Number.isNaN(num)){ alert('数値を入力してください'); return; }
-      try{
-        showSaving(true);
-        await updateNotion({ id: el.dataset.id, [field]: num });
-        p.textContent = fmtNum(num);
-        updateTotals(el.closest('.cell'));
-        toastOk();
-      }catch(e){ alert('保存に失敗しました'); }
-      finally{ showSaving(false); }
+
+  // inline edit
+  for(const n of $$('.num', div)){
+    n.addEventListener('focus', e=>{ n.dataset._old = n.textContent.trim(); });
+    n.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault(); n.blur(); }
+      if(e.key==='Escape'){ e.preventDefault(); n.textContent=n.dataset._old||''; n.blur(); }
     });
-  });
-  enableCardDnD(el);
-  return el;
-}
+    n.addEventListener('input', e=>{ n.classList.add('edited'); });
+    n.addEventListener('blur', async e=>{
+      const field = n.dataset.field;
+      const val = parseNum(n.textContent);
+      const old = parseNum(n.dataset._old||'');
+      n.classList.remove('edited');
+      if(val===old) return;
 
-function updateTotals(cell){
-  const cards = $$('.card', cell);
-  let sPlan=0, sToday=0, sActual=0;
-  for(const c of cards){
-    sPlan  += parseFloat($('[data-field="plan"]', c)?.textContent||0)    || 0;
-    sToday += parseFloat($('[data-field="today_plan"]', c)?.textContent||0)|| 0;
-    sActual+= parseFloat($('[data-field="actual"]', c)?.textContent||0)  || 0;
-  }
-  $('.totals', cell).textContent = `計:${round1(sPlan)} / 予:${round1(sToday)} / 実:${round1(sActual)}`;
-}
-
-function fmtNum(v){ return (v===null||v===undefined||v==='')?'':(Math.round(Number(v)*10)/10).toString(); }
-function round1(v){ return Math.round(v*10)/10; }
-function labelOf(field){ return field==='plan'?'計画':(field==='today_plan'?'当日予定':'実績'); }
-function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-
-/* -------------- DnD (カード) -------------- */
-function enableCardDnD(card){
-  card.addEventListener('dragstart', e=>{
-    card.classList.add('dragging');
-    e.dataTransfer.setData('text/card-id', card.dataset.id);
-    e.dataTransfer.effectAllowed='move';
-  });
-  card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
-}
-function enableLaneDnD(lane){
-  lane.addEventListener('dragover', e=>{
-    if(!e.dataTransfer.types.includes('text/card-id')) return;
-    e.preventDefault();
-    const after = getDragAfterElement(lane, e.clientY);
-    lane.classList.add('dragover');
-    if(after==null) lane.appendChild($('.drop-indicator', lane));
-    else lane.insertBefore($('.drop-indicator', lane), after);
-  });
-  lane.addEventListener('dragleave', ()=> lane.classList.remove('dragover'));
-  lane.addEventListener('drop', async e=>{
-    const id = e.dataTransfer.getData('text/card-id');
-    const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
-    const after = getDragAfterElement(lane, e.clientY);
-    if(after==null) lane.appendChild(card); else lane.insertBefore(card, after);
-    lane.classList.remove('dragover');
-    $('.drop-indicator', lane).remove();
-
-    // 並び直し → order を10刻みで振り直し、移動カードは date/assignee も更新
-    const cards = $$('.card', lane);
-    const updates = [];
-    cards.forEach((c, i)=>{
-      const newOrder = (i+1)*10;
-      if(Number(c.dataset.order)!==newOrder){
-        c.dataset.order = newOrder;
-        const payload = { id: c.dataset.id, order: newOrder };
-        if(c===card){ // 移動したカードは 対象セルの担当者/日付も更新
-          payload.assignee_id = lane.dataset.userId;
-          payload.date        = lane.dataset.date;
-        }
-        updates.push(payload);
-      }else if(c===card){
-        // order同じでもセル移動のみのケースをケア
-        updates.push({ id: c.dataset.id, assignee_id: lane.dataset.userId, date: lane.dataset.date });
+      try{
+        Saving.show();
+        await patch({ id: item.id, [field]: val });
+        // ローカル反映
+        const idx = STATE.items.findIndex(x=>x.id===item.id);
+        if(idx>=0){ STATE.items[idx][field] = val; }
+        // 表示更新（このカードだけ数値を書き戻し & 合計再計算）
+        n.textContent = numfmt(val);
+        renderCards();
+        Saving.ok();
+      }catch(err){
+        console.warn(err);
+        alert('保存に失敗しました');
+        n.textContent = numfmt(old);
       }
     });
-    try{
-      showSaving(true);
-      for(const u of updates) await updateNotion(u);
-      // 合計再計算（元セル/先セル）
-      updateTotals(lane);
-      const prevCell = card._prevCell || null;
-      if(prevCell && prevCell!==lane) updateTotals(prevCell);
-      toastOk();
-    }catch(e){ alert('更新に失敗しました'); }
-    finally{ showSaving(false); card._prevCell=null; }
+  }
+  return div;
+}
+
+function numfmt(v){ return (v===null || v===undefined || v==='')?'':String(v); }
+function parseNum(t){
+  const s = String(t).trim();
+  if(s==='') return null;
+  const n = Number(s.replace(/[^0-9.+-]/g,''));
+  return isFinite(n)?n:null;
+}
+function trim0(n){ return (Math.round(n*100)/100)||0; }
+
+/* ========= DnD ========= */
+let dragData=null, ghost=null;
+
+function enableCardDnD(card){
+  card.addEventListener('dragstart', e=>{
+    dragData = {
+      id: card.dataset.id,
+      fromLane: card.closest('.lane'),
+      order: Number(card.dataset.order||0),
+      el: card
+    };
+    ghost = card.cloneNode(true);
+    ghost.classList.add('ghost');
+    ghost.style.width = card.getBoundingClientRect().width+'px';
+    setTimeout(()=>card.style.opacity='.3',0);
+    e.dataTransfer.effectAllowed='move';
   });
-  // ドラッグ開始時に元セル保存
-  lane.addEventListener('dragstart', e=>{
-    const id = e.target?.closest?.('.card')?.dataset?.id;
-    if(id){
-      const el = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
-      if(el) el._prevCell = el.closest('.lane');
+  card.addEventListener('dragend', e=>{
+    if(dragData?.el) dragData.el.style.opacity='';
+    dragData=null;
+    if(ghost?.parentNode) ghost.parentNode.removeChild(ghost);
+    ghost=null;
+    $$('.lane').forEach(l=>l.classList.remove('dropping'));
+  });
+}
+
+function enableLaneDnD(lane){
+  lane.addEventListener('dragover', e=>{
+    if(!dragData) return;
+    e.preventDefault();
+    lane.classList.add('dropping');
+
+    if(!ghost) return;
+    const before = getBefore(lane, e.clientY);
+    if(before) lane.insertBefore(ghost, before);
+    else lane.appendChild(ghost);
+  });
+
+  lane.addEventListener('dragleave', e=>{
+    lane.classList.remove('dropping');
+  });
+
+  lane.addEventListener('drop', async e=>{
+    if(!dragData) return;
+    e.preventDefault();
+    lane.classList.remove('dropping');
+
+    // 新しい order を決定
+    const children = $$('.card', lane).filter(x=>x!==dragData.el);
+    let before = getBefore(lane, e.clientY);
+    let newOrder = 10;
+    if(children.length){
+      if(before){
+        const idx = children.indexOf(before);
+        const prev = children[idx-1];
+        const a = prev ? Number(prev.dataset.order||0) : 0;
+        const b = Number(before.dataset.order||0);
+        newOrder = Math.floor((a+b)/2) || (a+1);
+      }else{
+        const last = children[children.length-1];
+        const a = Number(last.dataset.order||0);
+        newOrder = a + 10;
+      }
     }
-  }, true);
-}
-function getDragAfterElement(container, y){
-  const els = $$('.card', container).filter(e=>!e.classList.contains('dragging'));
-  let closest = null; let closestOff = Number.NEGATIVE_INFINITY;
-  for(const el of els){
-    const box = el.getBoundingClientRect();
-    const off = y - box.top - box.height/2;
-    if(off<0 && off>closestOff){ closestOff=off; closest=el; }
-  }
-  return closest;
-}
 
-/* -------------- Row order (担当者順) -------------- */
-function loadRowOrder(defaultIds){
-  const saved = localStorage.getItem('rowOrder');
-  if(!saved) return defaultIds;
-  const arr = JSON.parse(saved);
-  // defaultに無いidを削除、足りないidを末尾追加
-  const filtered = arr.filter(id=>defaultIds.includes(id));
-  for(const id of defaultIds) if(!filtered.includes(id)) filtered.push(id);
-  return filtered;
-}
-function saveRowOrder(ids){ localStorage.setItem('rowOrder', JSON.stringify(ids)); }
+    const assignee_id = lane.dataset.assigneeId || null;
+    const date = lane.dataset.date;
 
-/* -------------- boot -------------- */
-(async function(){
-  // UI
-  const start = $('#start'); const days = $('#days'); const reloadBtn = $('#reload');
-  const today = new Date().toISOString().slice(0,10);
-  start.value = new URL(location.href).searchParams.get('start') || today;
-  days.value  = new URL(location.href).searchParams.get('days')  || '14';
-
-  async function reload(){
-    const s = start.value; const d = days.value;
-    history.replaceState(null,'', `?start=${s}&days=${d}`);
-    showSaving(true);
     try{
-      const data = await fetchGrid(s, d);
-      STATE = data;
-      buildBoard();
-    }finally{ showSaving(false); }
+      Saving.show();
+      await patch({ id: dragData.id, assignee_id, date, order: newOrder });
+
+      // ローカル更新
+      const idx = STATE.items.findIndex(x=>x.id===dragData.id);
+      if(idx>=0){
+        STATE.items[idx].assignee_id = assignee_id;
+        STATE.items[idx].date = date;
+        STATE.items[idx].order = newOrder;
+      }
+      renderCards();
+      Saving.ok();
+    }catch(err){
+      console.warn(err);
+      alert('移動に失敗しました');
+    }
+  });
+}
+
+function getBefore(lane, y){
+  const cards = $$('.card', lane).filter(x=>x!==ghost && x!==dragData?.el);
+  for(const c of cards){
+    const r = c.getBoundingClientRect();
+    if(y < r.top + r.height/2) return c;
   }
-  reloadBtn.addEventListener('click', reload);
+  return null;
+}
+
+/* ========= utils ========= */
+function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+function cssEscape(s){ return CSS.escape(String(s)); }
+
+/* ========= load / controls ========= */
+function setFromQuery(){
+  const p = new URLSearchParams(location.search);
+  const s = p.get('start') || todayStr();
+  const d = Number(p.get('days') || 14);
+  $('#start').value = s;
+  $('#days').value = d;
+}
+
+async function reload(){
+  const s = $('#start').value;
+  const d = Number($('#days').value||14);
+  history.replaceState(null,'',`?start=${s}&days=${d}`);
+  try{
+    Saving.show();
+    const [grid, usersResp] = await Promise.all([ getGrid(s,d), getUsers() ]);
+    const users = (usersResp.users && usersResp.users.length) ? usersResp.users : (grid.users||[]);
+    STATE = { dates: grid.dates||[], users: users||[], items: grid.items||[] };
+    buildBoard();
+  }finally{ Saving.hide(); }
+}
+
+function bindUI(){
+  $('#prev').addEventListener('click', ()=>{
+    const dt = new Date($('#start').value); dt.setDate(dt.getDate() - Number($('#days').value||14));
+    $('#start').value = ymd(dt); reload();
+  });
+  $('#next').addEventListener('click', ()=>{
+    const dt = new Date($('#start').value); dt.setDate(dt.getDate() + Number($('#days').value||14));
+    $('#start').value = ymd(dt); reload();
+  });
+  $('#reload').addEventListener('click', reload);
+  $('#start').addEventListener('change', reload);
+  $('#days').addEventListener('change', reload);
+  $('#compact').addEventListener('change', e=>{
+    document.body.classList.toggle('compact', e.target.checked);
+  });
+}
+
+/* ========= boot ========= */
+(async function init(){
+  setFromQuery();
+  bindUI();
   await reload();
 })();
 </script>
+</body>
+</html>
