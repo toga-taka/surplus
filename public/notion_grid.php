@@ -115,14 +115,14 @@ foreach (($j['results'] ?? []) as $pg) {
   $p = $pg['properties'] ?? [];
 
   // ★ここが肝：日本語プロパティ名に合わせて候補を定義
-  $kAssignee = pick_key($p, ['担当者','社員']);
-  $kDate     = pick_key($p, ['日付','Date','date']);
-  $kOrder    = pick_key($p, ['順番','order','Order']);
-  $kCust     = pick_key($p, ['顧客名','顧客','得意先','Customer','client']);
-  $kTask     = pick_key($p, ['タスク']);
-  $kContent  = pick_key($p, ['内容','メモ','説明','備考','詳細','コメント','content','Description']);
-  $kPlan     = pick_key($p, ['当日予定']);
-  $kActual   = pick_key($p, ['実績']);
+$kAssignee = '担当者';   // people
+$kDate     = '日付';     // date
+$kOrder    = '順番';     // number（無ければ空でもOK）
+$kCust     = '顧客名';   // text/title
+$kTask     = 'タスク';   // relation（カードに表示するタイトル）
+$kContent  = '内容';     // text/rich_text
+$kPlan     = '当日予定'; // number/text（どちらでも text化して返します）
+$kActual   = '実績';     // number/text
 
   // 日付必須
   $date = ($kDate && isset($p[$kDate])) ? val($p[$kDate]) : null;
