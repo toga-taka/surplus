@@ -14,11 +14,11 @@
     --toolbarH: 48px;
   }
   *{box-sizing:border-box}
-  body{margin:0;font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", Helvetica, Arial}
+  body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",Helvetica,Arial}
 
   /* ツールバー */
   .toolbar{
-    position: sticky; top:0; z-index:60;
+    position: sticky; top:0; z-index:300;
     display:flex; gap:8px; align-items:center;
     padding:10px 12px; background:#fff; border-bottom:1px solid var(--bd);
     height: var(--toolbarH);
@@ -28,34 +28,23 @@
   }
   .toolbar .grow{flex:1}
 
-  /* スクロール領域（縦も横もここでスクロール） */
-  .wrap{
-    padding:8px;
-    height: calc(100vh - var(--toolbarH)); /* ← これで dates の sticky が確実に効く */
-    overflow: auto;                         /* 縦横スクロールを受け持つ */
-  }
+  .wrap{padding:8px}
 
   /* 日付ヘッダ（固定） */
   .dates{
-    position: sticky; top: var(--toolbarH); z-index:50;
-    background:#fff; /* 透け防止 */
-    border-bottom:1px solid var(--bd);
+    position: sticky; top: calc(var(--toolbarH)); z-index:200;
+    background:#fff; border-bottom:1px solid var(--bd);
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
-    pointer-events: none;
-    /* 列数分の最低幅を確保（枠が最後まで続く） */
-    min-width: calc( var(--left) + (var(--days) * var(--col)) + (max(0, var(--days) - 1) * var(--gap)) );
+    pointer-events: none; /* ヘッダ上でも背面の要素操作を許可 */
   }
   .dates .blank{
-    position:sticky; left:0; z-index:51; background:#fff; border-right:1px solid var(--bd); pointer-events:auto;
+    position:sticky; left:0; z-index:201; background:#fff; border-right:1px solid var(--bd); pointer-events:auto;
     display:flex; align-items:center; padding:8px 10px; font-weight:600;
   }
   .dateHead{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
-    padding:8px 10px;
-    border-left:1px dashed var(--bd);
-    border-right:1px dashed var(--bd); /* 右側の枠も付与 */
-    background:#fff;                 /* 透け防止 */
+    padding:8px 10px; border-left:1px dashed var(--bd);
   }
   .dateHead .d{ font-weight:600; }
   .dateHead .w{ color:var(--muted); font-size:12px; }
@@ -63,22 +52,20 @@
   .dateHead.sat .d, .dateHead.sat .w{ color:#2563eb; }
   .dateHead .sum{
     font-size:12px; background:#f3f4f6; border:1px solid var(--bd); border-radius:999px; padding:2px 8px;
+    white-space:nowrap;
   }
 
   /* 行（担当者ごと） */
   .rows{
     display:flex; flex-direction:column; gap:var(--gap);
-    /* 列数分の最低幅を確保（枠が最後まで続く） */
-    min-width: calc( var(--left) + (var(--days) * var(--col)) + (max(0, var(--days) - 1) * var(--gap)) );
-    margin-top: var(--gap); /* ← 1人目の上に余白を付与 */
+    /* ヘッダの高さ分は JS で padding-top を自動設定します */
   }
   .row{
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
     align-items: stretch;
-    padding-bottom:8px;               /* 行の下線（担当者ごと） */
-    border-bottom:1px solid var(--bd);
-    background:#fff; /* 透け防止（保険） */
+    border-bottom:1px solid var(--bd); /* 担当者ごとの下線 */
+    background:#fff;
   }
   .name{
     position: sticky; left:0; z-index:30; background:#fff;
@@ -93,7 +80,7 @@
 
   /* 各マス */
   .lane{
-    position:relative;
+    position:relative; z-index:0;
     min-height:140px; padding:8px; border:1px solid var(--bd); border-radius:10px; background:#fff;
   }
   .laneSum{
@@ -104,7 +91,8 @@
 
   /* カード */
   .card{
-    position:relative; margin-top:28px;
+    position:relative; z-index:0;
+    margin-top:28px;
     border:1px solid var(--bd); border-radius:10px; padding:10px 36px 10px 28px; background:#fff;
     box-shadow:0 1px 2px rgba(0,0,0,.06);
   }
@@ -131,7 +119,7 @@
 
   /* トースト */
   .toast{
-    position:fixed; right:12px; bottom:12px; z-index:80;
+    position:fixed; right:12px; bottom:12px; z-index:280;
     background:#111827; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.18);
     display:none;
   }
@@ -139,7 +127,7 @@
 
   /* 通信中オーバーレイ */
   .overlay{
-    position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center;
+    position:fixed; inset:0; z-index:290; display:none; align-items:center; justify-content:center;
     background:rgba(255,255,255,.6); backdrop-filter:saturate(1.2) blur(1.5px);
   }
   .overlay.show{ display:flex; }
@@ -149,7 +137,7 @@
   }
 
   /* 並び替えモーダル */
-  .modal{ position:fixed; inset:0; z-index:85; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.25); }
+  .modal{ position:fixed; inset:0; z-index:285; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.25); }
   .modal.show{ display:flex; }
   .panel{
     width:min(420px,92vw); background:#fff; border-radius:14px; border:1px solid var(--bd); padding:14px;
@@ -294,6 +282,18 @@ function buildHeaders(){
     box.append(left,right);
     dWrap.appendChild(box);
   }
+
+  // ヘッダの高さ分だけ、行エリアの上パディングを確保（最上段の集計が隠れないように）
+  adjustRowsPadding();
+}
+
+function adjustRowsPadding(){
+  const dWrap=el('#dates');
+  const rWrap=el('#rows');
+  if(dWrap && rWrap){
+    const h = dWrap.offsetHeight || 0;
+    rWrap.style.paddingTop = (h + 8) + 'px'; // 少し余裕 (+8px)
+  }
 }
 
 function buildRows(){
@@ -410,7 +410,7 @@ function recalcSums(){
     const s=byDate.get(d.date)||{plan:0,today:0,actual:0};
     const b=el(`#sum-${d.date}`); if(b) b.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`;
   });
-  // 各マス & 担当者合計
+  // 各マス
   users.forEach(u=>{
     dates.forEach(d=>{
       const key=`${u.id}|${d.date}`;
@@ -418,6 +418,7 @@ function recalcSums(){
       const lane=document.querySelector(`.lane[data-assignee="${u.id}"][data-date="${d.date}"]`);
       if(lane){ const badge=lane.querySelector('.laneSum'); if(badge) badge.textContent=`計:${fmt(s.plan)} / 予:${fmt(s.today)} / 実:${fmt(s.actual)}`; }
     });
+    // 担当者合計
     const us=byUser.get(u.id)||{plan:0,today:0,actual:0};
     const lab=el(`#user-sum-${u.id}`); if(lab) lab.textContent=`計:${fmt(us.plan)} / 予:${fmt(us.today)} / 実:${fmt(us.actual)}`;
   });
@@ -521,9 +522,8 @@ el('#save').addEventListener('click', async ()=>{
 function valOrEmpty(v){ return (v===''?undefined:v); }
 function numOrNull(v){ if(v===''||v==null) return null; const n=Number(v); return isNaN(n)?null:n; }
 
-/* ====== サーバ更新（通信中オーバーレイ対応） ====== */
+/* ====== サーバ更新 ====== */
 async function patchCard(changes){
-  // undefined を送らない
   const payload={}; for(const k of Object.keys(changes)){ if(changes[k]!==undefined) payload[k]=changes[k]; }
   el('#status').textContent='保存中…';
   showOverlay('通信中…');
@@ -542,7 +542,7 @@ async function patchCard(changes){
   }
 }
 
-/* ====== 担当者の並び替え ====== */
+/* ====== 担当者の並び替え（ローカル保存） ====== */
 function loadUserOrder(){
   const raw=localStorage.getItem(storageKey('userOrder'));
   if(!raw) return null;
@@ -572,7 +572,7 @@ function moveUser(id, dir){
   buildRows(); placeCards();
 }
 
-/* 小リストでドラッグ並び替え */
+/* 並び替えモーダル */
 const reorderModal=el('#reorderModal');
 el('#openReorder').addEventListener('click', ()=>{
   const ul=el('#uList'); ul.innerHTML='';
@@ -633,13 +633,7 @@ async function bootstrap(){
       getJSON('/notion_users.php'),
       getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`)
     ]);
-
-    /* 全員表示：users.php を基準に grid 側の ID を補完 */
-    const base = (u && u.users) ? u.users : [];
-    const byId = new Map(base.map(x=>[x.id, x]));
-    (g.users || []).forEach(x => { if (!byId.has(x.id)) byId.set(x.id, x); });
-
-    users = Array.from(byId.values());
+    users = (g.users && g.users.length)? g.users : (u.users || []);
     dates = g.dates || [];
     items = g.items || [];
     userMap = new Map(users.map(x=>[x.id, x.name]));
@@ -650,6 +644,9 @@ async function bootstrap(){
     buildHeaders();
     buildRows();
     placeCards();
+
+    // リサイズ時もヘッダ高を再反映
+    window.addEventListener('resize', adjustRowsPadding);
   } finally {
     hideOverlay();
   }
