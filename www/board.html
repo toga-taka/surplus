@@ -28,15 +28,17 @@
   }
   .toolbar .grow{flex:1}
 
+  /* スクロール領域（縦も横もここでスクロール） */
   .wrap{
     padding:8px;
-    overflow:auto; /* 横スクロール */
+    height: calc(100vh - var(--toolbarH)); /* ← これで dates の sticky が確実に効く */
+    overflow: auto;                         /* 縦横スクロールを受け持つ */
   }
 
   /* 日付ヘッダ（固定） */
   .dates{
-    position: sticky; top: calc(var(--toolbarH)); z-index:50;
-    background:#fff; /* ← 透け防止 */
+    position: sticky; top: var(--toolbarH); z-index:50;
+    background:#fff; /* 透け防止 */
     border-bottom:1px solid var(--bd);
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
@@ -52,8 +54,8 @@
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:8px 10px;
     border-left:1px dashed var(--bd);
-    border-right:1px dashed var(--bd); /* ← 右側の枠も付与 */
-    background:#fff;                 /* ← 透け防止 */
+    border-right:1px dashed var(--bd); /* 右側の枠も付与 */
+    background:#fff;                 /* 透け防止 */
   }
   .dateHead .d{ font-weight:600; }
   .dateHead .w{ color:var(--muted); font-size:12px; }
@@ -68,13 +70,15 @@
     display:flex; flex-direction:column; gap:var(--gap);
     /* 列数分の最低幅を確保（枠が最後まで続く） */
     min-width: calc( var(--left) + (var(--days) * var(--col)) + (max(0, var(--days) - 1) * var(--gap)) );
+    margin-top: var(--gap); /* ← 1人目の上に余白を付与 */
   }
   .row{
     display:grid; grid-template-columns: var(--left) repeat(var(--days), var(--col));
     gap: var(--gap);
     align-items: stretch;
     padding-bottom:8px;               /* 行の下線（担当者ごと） */
-    border-bottom:1px solid var(--bd);/* ← 追加 */
+    border-bottom:1px solid var(--bd);
+    background:#fff; /* 透け防止（保険） */
   }
   .name{
     position: sticky; left:0; z-index:30; background:#fff;
@@ -630,12 +634,12 @@ async function bootstrap(){
       getJSON(`/notion_grid.php?start=${encodeURIComponent(qp.start)}&days=${qp.days}`)
     ]);
 
-    /* ここが “全員表示” の肝 */
+    /* 全員表示：users.php を基準に grid 側の ID を補完 */
     const base = (u && u.users) ? u.users : [];
     const byId = new Map(base.map(x=>[x.id, x]));
     (g.users || []).forEach(x => { if (!byId.has(x.id)) byId.set(x.id, x); });
 
-    users = Array.from(byId.values());  // ← notion_users の全員ベース
+    users = Array.from(byId.values());
     dates = g.dates || [];
     items = g.items || [];
     userMap = new Map(users.map(x=>[x.id, x.name]));
