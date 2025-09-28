@@ -1,641 +1,355 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>ボード</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- 404 回避 -->
-  <link rel="icon" href="data:,">
-  <style>
-    :root{
-      --cw: 320px;         /* 列（1 日）の幅 */
-      --lh: 140px;         /* セルの最小高さ */
-      --bd: #e5e7eb;       /* 境界線 */
-      --muted:#6b7280;     /* 補助文字 */
-      --pill:#1118270d;    /* pill 背景 */
-      --ghost:#a3a3a3;     /* ドラッグのガイド */
-      --holiday:#fee2e2;   /* 祝日/日曜 */
-      --sat:#e0f2fe;       /* 土曜 */
-      --head:#ffffff;      /* sticky ヘッダ背景 */
-      --left:#ffffff;      /* sticky 左列背景 */
-    }
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;
-      color:#111827; background:#fff;
-    }
-    header{
-      position:sticky; top:0; z-index:5;
-      background:#fff; border-bottom:1px solid var(--bd);
-      padding:8px 12px; display:flex; gap:8px; align-items:center;
-    }
-    header h1{ font-size:14px; margin:0 8px 0 0; color:#374151; }
-    input,select,button{ font:inherit; }
-    .btn{ padding:6px 10px; border:1px solid var(--bd); background:#fff; border-radius:6px; }
-    .row{ display:flex; align-items:center; gap:4px; }
-    .sep{ flex:1; }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ボード</title>
+<link rel="icon" href="data:,"><!-- 404抑止 -->
+<style>
+:root{
+  --cw: 320px;         /* 1日の横幅（UIで変更可） */
+  --lh: 140px;         /* 1セルの最低高さ */
+  --bd: #e5e7eb;       /* 枠線 */
+  --muted:#6b7280;     /* 補助文字 */
+  --pill:#1118270d;    /* pill背景 */
+  --ghost:#9ca3af;     /* ゴースト */
+  --sun:#fee2e2;       /* 日曜背景 */
+  --sat:#e0f2fe;       /* 土曜背景 */
+  --head:#ffffff;      /* ヘッダ背景 */
+  --left:#ffffff;      /* 左列背景 */
+}
+*{ box-sizing:border-box }
+html,body{ height:100% }
+body{
+  margin:0; background:#fff; color:#111827;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+}
 
-    /* ===== ボード ===== */
-    #boardWrap{ height:calc(100vh - 56px); overflow:auto; }
-    #grid{ position:relative; inline-size:max(100%, calc( var(--cw) * var(--days) + 240px )); }
+/* ===== ヘッダ ===== */
+header{
+  position:sticky; top:0; z-index:10;
+  display:flex; gap:10px; align-items:center;
+  padding:8px 12px; background:#fff; border-bottom:1px solid var(--bd);
+}
+h1{ font-size:14px; color:#374151; margin:0 4px 0 0 }
+label{ color:#374151; font-size:12px; }
+input,select,button{ font:inherit }
+.btn{ padding:6px 10px; border:1px solid var(--bd); background:#fff; border-radius:8px }
+.sep{ flex:1 }
 
-    .rowline{ display:grid; grid-template-columns: 240px repeat(var(--days), var(--cw)); }
+/* ===== ボード ===== */
+#boardWrap{ height:calc(100vh - 56px); overflow:auto }
+#grid{ position:relative; inline-size:max(100%, calc(var(--cw) * var(--days) + 240px)); }
+.rowline{ display:grid; grid-template-columns: 240px repeat(var(--days), var(--cw)); }
 
-    /* ヘッダ行（日付） */
-    .head .cell{
-      position:sticky; top:0; z-index:4;
-      background:var(--head);
-      border-bottom:1px solid var(--bd);
-    }
-    .date{
-      padding:10px 12px; font-weight:600;
-      border-right:1px solid var(--bd);
-    }
-    .date .wd{ font-weight:400; color:var(--muted); margin-left:6px; }
-    .date.badge{ text-align:right; }
+/* 固定ヘッダ（日付） */
+.head .cell{ position:sticky; top:0; z-index:4; background:var(--head); border-bottom:1px solid var(--bd) }
+.date{ padding:10px 12px; font-weight:700; border-right:1px solid var(--bd) }
+.date .wd{ font-weight:400; color:var(--muted); margin-left:6px }
+.date .sumBadge{ margin-top:6px }
 
-    /* 左列（担当者） */
-    .assignee{
-      position:sticky; left:0; z-index:3;
-      background:var(--left);
-      border-right:1px solid var(--bd);
-      border-bottom:1px solid var(--bd);
-      display:flex; align-items:center; gap:8px;
-      padding:10px 12px; min-height:var(--lh);
-    }
-    .assignee .name{ font-weight:600; }
-    .assignee .sum{ margin-left:auto; font-size:12px; color:#374151; background:#f3f4f6; border:1px solid var(--bd); padding:2px 6px; border-radius:999px; }
+/* 固定左列（担当者） */
+.assignee{
+  position:sticky; left:0; z-index:3; background:var(--left);
+  border-right:1px solid var(--bd); border-bottom:1px solid var(--bd);
+  min-height:var(--lh); display:flex; align-items:center; gap:8px; padding:10px 12px;
+}
+.assignee .name{ font-weight:700 }
+.assignee .sum{ margin-left:auto; font-size:12px; color:#374151; background:#f3f4f6; border:1px solid var(--bd); padding:2px 6px; border-radius:999px }
+.assignee .rowmv{ display:flex; flex-direction:column; gap:4px; }
+.rowmv button{ width:24px; height:20px; border:1px solid var(--bd); border-radius:4px; background:#fff; color:#6b7280 }
+.rowmv button:active{ transform:translateY(1px) }
 
-    .assignee .mv{ display:flex; flex-direction:column; gap:4px; }
-    .mv button{ width:24px; height:20px; border:1px solid var(--bd); border-radius:4px; background:#fff; color:#6b7280; }
-    .mv button:active{ transform:translateY(1px); }
+/* セル（担当者×日付） */
+.cell{ min-height:var(--lh); position:relative; background:#fff }
+.lane{ border-right:1px solid var(--bd); border-bottom:1px solid var(--bd); padding:8px }
+.lane[data-weekday="0"]{ background:var(--sun) }
+.lane[data-weekday="6"]{ background:var(--sat) }
+.sumBadge{
+  position:absolute; top:6px; right:8px;
+  font-size:12px; background:#f3f4f6; border:1px solid var(--bd);
+  padding:2px 6px; border-radius:999px;
+}
 
-    /* セル（担当者×日付） */
-    .cell{ min-height:var(--lh); position:relative; background:#fff; }
-    .lane{
-      border-right:1px solid var(--bd);
-      border-bottom:1px solid var(--bd);
-      padding:8px;
-    }
-    .lane[data-weekday="0"] .bg,
-    .lane[data-weekday="0"]{ background:var(--holiday); }
-    .lane[data-weekday="6"]{ background:var(--sat); }
-    .lane .bg{ position:absolute; inset:0; opacity:.25; pointer-events:none; }
+/* カード */
+.card{
+  position:relative; background:#fff; border:1px solid var(--bd); border-radius:12px;
+  padding:10px 12px; margin:6px 0; box-shadow:0 1px 0 rgba(0,0,0,.05);
+}
+.card .title{ font-weight:700; margin-bottom:2px }
+.card .sub{ color:#374151; margin:2px 0 4px; font-size:13px }
+.meta{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px }
+.pill{ display:inline-flex; gap:6px; align-items:center; padding:2px 8px; border:1px solid var(--bd); background:var(--pill); border-radius:999px; font-size:12px }
 
-    .sumBadge{
-      position:absolute; top:6px; right:8px;
-      font-size:12px; color:#111827; background:#f3f4f6;
-      border:1px solid var(--bd); padding:2px 6px; border-radius:999px;
-    }
+/* ハンドル & 編集ボタン */
+.handles{
+  position:absolute; left:6px; top:6px; display:flex; gap:6px;
+}
+.hbtn,.iconbtn{
+  width:24px; height:24px; display:grid; place-content:center;
+  border:1px solid var(--bd); border-radius:999px; background:#fff; color:#6b7280;
+}
+.hbtn:hover,.iconbtn:hover{ background:#f9fafb }
+.editBtns{ position:absolute; right:6px; top:6px }
 
-    /* ===== カード ===== */
-    .card{
-      position:relative;
-      background:#fff; border:1px solid var(--bd); border-radius:12px;
-      padding:10px 12px; margin:6px 0;
-      box-shadow:0 1px 0 rgba(0,0,0,.03);
-      cursor:grab;
-    }
-    .card:active{ cursor:grabbing; }
-    .title{ font-weight:700; margin-bottom:2px; }
-    .sub{ color:#374151; margin:2px 0 4px; font-size:13px; }
-    .pill{ display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border:1px solid var(--bd); border-radius:999px; background:var(--pill); font-size:12px; margin:3px 6px 0 0; }
-    .meta{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+/* ドラッグ中のガイド */
+.ghost{ outline:2px dashed var(--ghost); border-radius:12px; height:48px; margin:6px 0 }
 
-    .editBtns{
-      position:absolute; top:6px; right:6px; display:flex; gap:6px;
-    }
-    .iconbtn{ width:24px; height:24px; border:1px solid var(--bd); border-radius:999px; background:#fff; color:#6b7280; display:grid; place-content:center; }
-    .iconbtn:hover{ background:#f9fafb; }
+/* 編集ダイアログ */
+dialog{ border:1px solid var(--bd); border-radius:12px; padding:16px; width:min(520px, 92vw) }
+dialog::backdrop{ background:rgba(0,0,0,.25) }
+.formrow{ display:grid; grid-template-columns:120px 1fr; gap:10px; align-items:center; margin:8px 0 }
+.formrow input,.formrow select{ width:100%; padding:8px; border:1px solid var(--bd); border-radius:8px }
+.dlgbtns{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px }
 
-    /* ドラッグ用 */
-    .ghost{ outline:2px dashed var(--ghost); border-radius:12px; height:48px; margin:6px 0; }
+/* 通信中 */
+#loading{ position:fixed; inset:0; background:rgba(255,255,255,.55); display:none; align-items:center; justify-content:center; z-index:20 }
+#loading .box{ padding:12px 16px; background:#fff; border:1px solid var(--bd); border-radius:12px; font-weight:700; box-shadow:0 10px 30px rgba(0,0,0,.06) }
+#loading.show{ display:flex }
 
-    /* ===== モーダル（編集） ===== */
-    dialog{ border:1px solid var(--bd); border-radius:12px; padding:16px; width:min(520px, 92vw); }
-    dialog::backdrop{ background:rgba(0,0,0,.25); }
-    .formrow{ display:grid; grid-template-columns: 120px 1fr; gap:10px; align-items:center; margin:8px 0; }
-    .formrow input, .formrow select{ width:100%; padding:8px; border:1px solid var(--bd); border-radius:8px; }
-    .dlgbtns{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
-
-    /* ===== ローディング ===== */
-    #loading{
-      position:fixed; inset:0; background:rgba(255,255,255,.55);
-      display:none; align-items:center; justify-content:center;
-      z-index:10;
-    }
-    #loading .box{
-      padding:12px 16px; background:#fff; border:1px solid var(--bd); border-radius:12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.06);
-      font-weight:700;
-    }
-    #loading.show{ display:flex; }
-
-    /* ユーティリティ */
-    .muted{ color:var(--muted); }
-  </style>
+.muted{ color:var(--muted) }
+</style>
 </head>
 <body>
-  <header>
-    <h1>ボード</h1>
-    <div class="row">
-      <label>開始日</label>
-      <input type="date" id="start">
-      <label>日数</label>
-      <select id="days">
-        <option>7</option><option selected>14</option><option>21</option><option>28</option><option>60</option>
-      </select>
-      <button class="btn" id="reload">再読み込み</button>
+<header>
+  <h1>ボード</h1>
+  <label>開始日</label><input type="date" id="start">
+  <label>日数</label>
+  <select id="days"><option>7</option><option selected>14</option><option>21</option><option>28</option><option>60</option></select>
+  <button class="btn" id="reload">更新</button>
+  <label style="margin-left:12px">幅</label>
+  <select id="width"><option>280</option><option selected>320</option><option>360</option><option>400</option><option>480</option></select><span class="muted"> px</span>
+  <div class="sep"></div>
+  <button class="btn" id="toggleRowSort">担当者並び替え</button>
+</header>
+
+<div id="boardWrap"><div id="grid"></div></div>
+
+<div id="loading"><div class="box">通信中…</div></div>
+
+<dialog id="editor">
+  <form method="dialog" id="editForm">
+    <input type="hidden" name="id">
+    <div class="formrow"><label>日付</label><input type="date" name="date" required></div>
+    <div class="formrow"><label>担当者</label><select name="assignee_id" id="assigneeSelect"></select></div>
+    <div class="formrow"><label>計画</label><input type="number" step="0.05" name="plan"></div>
+    <div class="formrow"><label>当日予定</label><input type="number" step="0.05" name="today_plan"></div>
+    <div class="formrow"><label>実績</label><input type="number" step="0.05" name="actual"></div>
+    <div class="formrow"><label>残時間</label><input type="number" step="0.05" name="remain"></div>
+    <div class="dlgbtns">
+      <button class="btn" value="cancel">キャンセル</button>
+      <button class="btn" value="ok" id="saveBtn">保存</button>
     </div>
-    <div class="row">
-      <label>幅</label>
-      <select id="width">
-        <option>280</option><option selected>320</option><option>360</option><option>400</option><option>480</option>
-      </select><span class="muted">px</span>
-    </div>
-    <div class="sep"></div>
-    <button class="btn" id="toggleOrder">担当者並び替え</button>
-  </header>
+  </form>
+</dialog>
 
-  <div id="boardWrap">
-    <div id="grid"></div>
-  </div>
+<script>
+const el  =(q,p=document)=>p.querySelector(q);
+const els =(q,p=document)=>Array.from(p.querySelectorAll(q));
+const API = { USERS:'/notion_users.php', GRID:'/notion_grid.php', UPDATE:'/notion_update.php' };
+const WD = ['日','月','火','水','木','金','土'];
 
-  <!-- ローディング -->
-  <div id="loading"><div class="box">通信中…</div></div>
+const Loading={ show(){el('#loading').classList.add('show')}, hide(){el('#loading').classList.remove('show')} };
+const E = (html)=>{ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; };
+const esc = (s)=>String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+const num =(v, keepNull=false)=> (v===''||v==null)?(keepNull?null:0):(isFinite(+v)?+v:0);
+const badge=(p=0,t=0,a=0)=>`計:${fmt(p)} / 予:${fmt(t)} / 実:${fmt(a)}`;
+const fmt  =(v)=>Number(v||0).toFixed(2).replace(/\.00$/,'');
 
-  <!-- 編集ダイアログ -->
-  <dialog id="editor">
-    <form method="dialog" id="editForm">
-      <input type="hidden" name="id">
-      <div class="formrow"><label>日付</label><input type="date" name="date" required></div>
-      <div class="formrow">
-        <label>担当者</label>
-        <select name="assignee_id" id="assigneeSelect"></select>
-      </div>
-      <div class="formrow"><label>計画</label><input type="number" step="0.05" name="plan"></div>
-      <div class="formrow"><label>当日予定</label><input type="number" step="0.05" name="today_plan"></div>
-      <div class="formrow"><label>実績</label><input type="number" step="0.05" name="actual"></div>
-      <div class="formrow"><label>残時間</label><input type="number" step="0.05" name="remain"></div>
-      <div class="dlgbtns">
-        <button class="btn" value="cancel">キャンセル</button>
-        <button class="btn" value="ok" id="saveBtn">保存</button>
-      </div>
-    </form>
-  </dialog>
+let STATE={ start:'', days:14, users:[], userMap:new Map(), dates:[], items:[] };
+let drag={ active:false, type:null, id:null, startX:0,startY:0, moved:false, ghost:null, originLane:null };
 
-  <script>
-  /********************
-   * 小さなヘルパー
-   ********************/
-  const el = (q, p=document) => p.querySelector(q);
-  const els = (q, p=document) => Array.from(p.querySelectorAll(q));
-
-  const API = {
-    USERS:  '/notion_users.php',
-    GRID:   '/notion_grid.php',
-    UPDATE: '/notion_update.php',
-  };
-
-  const Loading = {
-    show(){ el('#loading').classList.add('show'); },
-    hide(){ el('#loading').classList.remove('show'); }
-  };
-
-  function laneFromPoint(e){
-    const t = document.elementFromPoint(e.clientX, e.clientY);
-    return t ? t.closest('.lane') : null;
+async function getUsers(){
+  const r=await fetch(API.USERS); const js=await r.json();
+  const list = js.users ?? js ?? [];
+  STATE.userMap = new Map(list.map(u=>[u.id, u.name||'(無名)']));
+  STATE.users = Array.from(STATE.userMap, ([id,name])=>({id,name}));
+}
+async function getGrid(){
+  const q=new URLSearchParams({start:STATE.start,days:String(STATE.days)});
+  const r=await fetch(`${API.GRID}?${q}`); const js=await r.json();
+  STATE.dates=(js.dates??[]).map(d=>({date:d.date,weekday:+d.weekday,is_holiday:!!d.is_holiday}));
+  STATE.items=(js.items??[]).map(x=>({
+    id:x.id, assignee_id:x.assignee_id??null, date:x.date, order:+(x.order??0),
+    customer:x.customer??'', task:x.task??'', content:x.content??'',
+    plan:+(x.plan??0), today_plan:+(x.today_plan??0), actual:+(x.actual??0), remain:+(x.remain??0),
+  }));
+  // items 側担当者も union
+  for(const it of STATE.items){
+    if(it.assignee_id && !STATE.userMap.has(it.assignee_id)) STATE.userMap.set(it.assignee_id, it.assignee_id);
   }
+  STATE.users = Array.from(STATE.userMap, ([id,name])=>({id,name}));
+}
 
-  function fmtBadge(plan=0, tp=0, act=0){
-    const f = (v)=> (Number(v||0)).toFixed(2).replace(/\.00$/,'');
-    return `計:${f(plan)} / 予:${f(tp)} / 実:${f(act)}`;
+function build(){
+  const grid=el('#grid'); grid.innerHTML=''; grid.style.setProperty('--days', String(STATE.days));
+  // ヘッダ
+  const head=E(`<div class="rowline head"><div class="cell assignee"><span class="name muted">担当者 / 日付</span></div></div>`);
+  for(const d of STATE.dates){
+    head.appendChild(E(`<div class="cell date">
+      <div>${d.date} <span class="wd">（${WD[d.weekday]}）</span></div>
+      <div class="sumBadge" data-date="${esc(d.date)}">${badge()}</div></div>`));
   }
-
-  // 平日=1..金, 土=6, 日=0
-  const WD = ['日','月','火','水','木','金','土'];
-
-  /********************
-   * 状態
-   ********************/
-  let STATE = {
-    start: '', days: 14,
-    users: [], userMap: new Map(),
-    dates: [],
-    items: [],  // [{id,assignee_id,date,order,customer,task,content,plan,today_plan,actual,remain}]
-  };
-
-  let dragData = null; // {id, ghost, startX, startY}
-
-  /********************
-   * 取得
-   ********************/
-  async function fetchUsers(){
-    const res = await fetch(API.USERS);
-    const js = await res.json();
-    const list = js.users ?? js ?? [];
-    // Map に統合（重複除去）
-    STATE.userMap = new Map(list.map(u=>[u.id, u.name || '(無名)']));
-    STATE.users = Array.from(STATE.userMap, ([id,name])=>({id,name}));
-  }
-
-  async function fetchGrid(){
-    const q = new URLSearchParams({ start: STATE.start, days: String(STATE.days) });
-    const res = await fetch(`${API.GRID}?${q}`);
-    const js = await res.json();
-
-    STATE.dates = (js.dates ?? []).map(d=>({
-      date: d.date, weekday: Number(d.weekday), is_holiday: !!d.is_holiday
-    }));
-
-    // items
-    STATE.items = (js.items ?? []).map(x=>({
-      id: x.id,
-      assignee_id: x.assignee_id ?? null,
-      date: x.date,
-      order: Number(x.order ?? 0),
-      customer: x.customer ?? '',
-      task: x.task ?? '',
-      content: x.content ?? '',
-      plan: Number(x.plan ?? 0),
-      today_plan: Number(x.today_plan ?? 0),
-      actual: Number(x.actual ?? 0),
-      remain: Number(x.remain ?? 0)
-    }));
-
-    // items 由来の担当者も union
-    for(const it of STATE.items){
-      if(it.assignee_id && !STATE.userMap.has(it.assignee_id)){
-        STATE.userMap.set(it.assignee_id, it.assignee_id); // 名前不明でも表示
-      }
-    }
-    STATE.users = Array.from(STATE.userMap, ([id,name])=>({id,name}));
-  }
-
-  /********************
-   * レンダリング
-   ********************/
-  function buildBoard(){
-    const grid = el('#grid');
-    grid.innerHTML = '';
-    grid.style.setProperty('--days', String(STATE.days));
-
-    // ヘッダ行
-    const head = document.createElement('div');
-    head.className = 'rowline head';
-    // 左上
-    const tl = document.createElement('div');
-    tl.className = 'cell assignee';
-    tl.style.top = '0';
-    tl.innerHTML = '<span class="name muted">担当者 / 日付</span>';
-    head.appendChild(tl);
-    // 日付列
+  grid.appendChild(head);
+  // 行
+  for(const u of STATE.users){
+    const row=E(`<div class="rowline"></div>`);
+    row.appendChild(E(`<div class="cell assignee" data-assignee-id="${esc(u.id)}">
+      <span class="rowmv"><button class="up">▲</button><button class="dn">▼</button></span>
+      <span class="name">${esc(u.name||u.id)}</span>
+      <span class="sum" data-assignee="${esc(u.id)}">${badge()}</span>
+    </div>`));
     for(const d of STATE.dates){
-      const h = document.createElement('div');
-      h.className = 'cell date';
-      h.innerHTML = `<div>${d.date} <span class="wd">（${WD[d.weekday]}）</span></div>
-                     <div class="sumBadge" data-date="${d.date}">計:0 / 予:0 / 実:0</div>`;
-      head.appendChild(h);
+      row.appendChild(E(`<div class="cell lane" data-assignee-id="${esc(u.id)}" data-date="${esc(d.date)}" data-weekday="${d.weekday}">
+        <div class="sumBadge">${badge()}</div></div>`));
     }
-    grid.appendChild(head);
-
-    // 担当者行（全員表示）
-    const users = STATE.users; // すでに union 済み
-    for(const u of users){
-      const row = document.createElement('div');
-      row.className = 'rowline';
-
-      // 左列：担当者
-      const left = document.createElement('div');
-      left.className = 'cell assignee';
-      left.dataset.assigneeId = u.id;
-      left.innerHTML = `
-        <span class="mv"><button class="mvUp" title="上へ">▲</button><button class="mvDown" title="下へ">▼</button></span>
-        <span class="name">${escapeHtml(u.name||u.id)}</span>
-        <span class="sum" data-assignee="${u.id}">計:0 / 予:0 / 実:0</span>`;
-      row.appendChild(left);
-
-      // 右側：日毎セル
-      for(const d of STATE.dates){
-        const lane = document.createElement('div');
-        lane.className = 'cell lane';
-        lane.dataset.assigneeId = u.id;
-        lane.dataset.date = d.date;
-        lane.dataset.weekday = String(d.weekday);
-        lane.innerHTML = `<div class="sumBadge">${fmtBadge(0,0,0)}</div>`;
-        row.appendChild(lane);
-      }
-      grid.appendChild(row);
-    }
-
-    // カードを配置
-    placeCards();
-
-    // イベント
-    wireHandlers();
+    grid.appendChild(row);
   }
+  placeCards(); wireUI();
+}
 
-  function placeCards(){
-    // いったん既存のカードを除去
-    els('.card').forEach(n=>n.remove());
+function placeCards(){
+  els('.card').forEach(n=>n.remove());
+  const laneSum=new Map(), asgSum=new Map(), dateSum=new Map();
+  const kLane=(a,d)=>`${a}|${d}`;
+  const add=(map,k,dp)=>{ const o=map.get(k)||{p:0,t:0,a:0}; o.p+=dp.p; o.t+=dp.t; o.a+=dp.a; map.set(k,o); };
 
-    // lane 毎の合計
-    const laneSum = new Map(); // key=`assigneeId|date` -> {plan,tp,act}
-    const assigneeSum = new Map(); // key=assigneeId -> {plan,tp,act}
-    const dateSum = new Map(); // key=date -> {plan,tp,act}
+  const items=[...STATE.items].sort((a,b)=> a.date===b.date ? a.order-b.order : (a.date<b.date?-1:1));
+  for(const it of items){
+    const lane=el(`.lane[data-assignee-id="${CSS.escape(it.assignee_id||'')}"][data-date="${CSS.escape(it.date)}"]`);
+    if(!lane) continue;
+    const card=E(`<div class="card" data-id="${esc(it.id)}" data-order="${it.order}">
+      <div class="handles">
+        <button class="hbtn handle-in" title="枠内で上下 ⇕">⇕</button>
+        <button class="hbtn handle-out" title="枠外へ移動 十">十</button>
+      </div>
+      <div class="editBtns"><button class="iconbtn edit" title="編集">✎</button></div>
+      <div class="title">${esc(it.task||'')}</div>
+      <div class="sub">${esc(it.customer||'')}</div>
+      <div class="sub muted">${esc(it.content||'')}</div>
+      <div class="meta">
+        <span class="pill">計画: <b>${fmt(it.plan)}</b></span>
+        <span class="pill">当日予定: <b>${fmt(it.today_plan)}</b></span>
+        <span class="pill">実績: <b>${fmt(it.actual)}</b></span>
+        <span class="pill">残: <b>${fmt(it.remain)}</b></span>
+      </div>
+    </div>`);
+    lane.appendChild(card);
 
-    const keyLane = (a,d)=> `${a}|${d}`;
-    const add = (obj,k,dp)=>{ const o=obj.get(k)||{plan:0,tp:0,act:0}; o.plan+=dp.plan; o.tp+=dp.tp; o.act+=dp.act; obj.set(k,o); };
-
-    // order で整列
-    const items = [...STATE.items].sort((a,b)=> (a.date===b.date ? a.order-b.order : (a.date<b.date?-1:1)));
-
-    for(const it of items){
-      // lane を取得（無ければスキップ）
-      const lane = el(`.lane[data-assignee-id="${CSS.escape(it.assignee_id||'')}"][data-date="${CSS.escape(it.date)}"]`);
-      if(!lane) continue;
-
-      // カード DOM
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.draggable = false; // pointer ベースで扱う
-      card.dataset.id = it.id;
-      card.dataset.order = String(it.order);
-
-      card.innerHTML = `
-        <div class="editBtns">
-          <button class="iconbtn editBtn" title="編集">✎</button>
-        </div>
-        <div class="title">${escapeHtml(it.task||'')}</div>
-        <div class="sub">${escapeHtml(it.customer||'')}</div>
-        <div class="sub muted">${escapeHtml(it.content||'')}</div>
-        <div class="meta">
-          <span class="pill">計画: <b>${num(it.plan)}</b></span>
-          <span class="pill">当日予定: <b>${num(it.today_plan)}</b></span>
-          <span class="pill">実績: <b>${num(it.actual)}</b></span>
-          <span class="pill">残: <b>${num(it.remain)}</b></span>
-        </div>
-      `;
-      lane.appendChild(card);
-
-      // 合計
-      const dp = { plan: it.plan||0, tp: it.today_plan||0, act: it.actual||0 };
-      add(laneSum, keyLane(it.assignee_id||'', it.date), dp);
-      add(assigneeSum, it.assignee_id||'', dp);
-      add(dateSum, it.date, dp);
-    }
-
-    // バッジ反映（lane）
-    for(const [k, v] of laneSum){
-      const [a,d] = k.split('|');
-      const lane = el(`.lane[data-assignee-id="${CSS.escape(a)}"][data-date="${CSS.escape(d)}"]`);
-      if(lane){ el('.sumBadge', lane).textContent = fmtBadge(v.plan, v.tp, v.act); }
-    }
-    // 担当者合計
-    for(const [a, v] of assigneeSum){
-      const b = el(`.assignee .sum[data-assignee="${CSS.escape(a)}"]`);
-      if(b) b.textContent = fmtBadge(v.plan, v.tp, v.act);
-    }
-    // 日付合計（ヘッダの右のバッジ）
-    for(const [d, v] of dateSum){
-      const b = els(`.head .date .sumBadge`).find(b=>b.dataset.date===d);
-      if(b) b.textContent = fmtBadge(v.plan, v.tp, v.act);
-    }
+    const dp={p:it.plan||0,t:it.today_plan||0,a:it.actual||0};
+    add(laneSum, kLane(it.assignee_id||'', it.date), dp);
+    add(asgSum, it.assignee_id||'', dp);
+    add(dateSum, it.date, dp);
   }
-
-  /********************
-   * イベント配線
-   ********************/
-  function wireHandlers(){
-    // 幅
-    el('#width').onchange = (e)=>{
-      document.documentElement.style.setProperty('--cw', e.target.value+'px');
-    };
-    // 再読み込み
-    el('#reload').onclick = reload;
-    // 開始日/日数
-    el('#start').onchange = ()=> shiftDays(0); // 値はそのまま、下の reload が実行される
-    el('#days').onchange = ()=> shiftDays(0);
-    // 並び替えトグル
-    el('#toggleOrder').onclick = ()=>{
-      document.body.classList.toggle('order-mode');
-      // ユーザー行の▲▼ボタンを有効に
-      els('.mv button').forEach(b=> b.disabled = !b.disabled && false);
-    };
-    // 行の ▲/▼
-    els('.mvUp').forEach(btn => btn.onclick = ()=> moveRow(btn.closest('.rowline'), -1));
-    els('.mvDown').forEach(btn => btn.onclick = ()=> moveRow(btn.closest('.rowline'), +1));
-
-    // カード編集
-    els('.editBtn').forEach(b => b.onclick = (e)=>{
-      e.stopPropagation();
-      const card = e.currentTarget.closest('.card');
-      openEditor(card.dataset.id);
-    });
-
-    // ドラッグ（pointer ベース）
-    els('.card').forEach(card=>{
-      card.addEventListener('pointerdown', onDragStart, {passive:true});
-    });
+  // バッジ
+  for(const [k,v] of laneSum){
+    const [a,d]=k.split('|'); const n=el(`.lane[data-assignee-id="${CSS.escape(a)}"][data-date="${CSS.escape(d)}"] .sumBadge`);
+    if(n) n.textContent = badge(v.p,v.t,v.a);
   }
-
-  function moveRow(row, dir){
-    const grid = el('#grid');
-    const rows = els('.rowline', grid).filter(r=>!r.classList.contains('head'));
-    const idx = rows.indexOf(row);
-    const to = idx + dir;
-    if(to<0 || to>=rows.length) return;
-    if(dir<0) grid.insertBefore(row, rows[to]);
-    else grid.insertBefore(row, rows[to].nextSibling);
+  for(const [a,v] of asgSum){
+    const n=el(`.assignee .sum[data-assignee="${CSS.escape(a)}"]`); if(n) n.textContent=badge(v.p,v.t,v.a);
   }
-
-  /********************
-   * ドラッグ&ドロップ
-   ********************/
-  function onDragStart(e){
-    const card = e.currentTarget;
-    dragData = { id: card.dataset.id, originCard: card };
-
-    // 置き場所ガイド
-    const ghost = document.createElement('div');
-    ghost.className = 'ghost';
-    dragData.ghost = ghost;
-
-    // 置くレーンの末尾に仮で追加
-    card.parentElement.appendChild(ghost);
-
-    // 追従用の影を作らず、カードはそのまま。pointerup で移動確定
-    document.addEventListener('pointerup', onDragEnd, {once:true});
+  for(const [d,v] of dateSum){
+    const n=els('.head .date .sumBadge').find(x=>x.dataset.date===d); if(n) n.textContent=badge(v.p,v.t,v.a);
   }
+}
 
-  async function onDragEnd(e){
-    if(!dragData){ return; }
-    const lane = laneFromPoint(e);
-    // 外ならキャンセル
-    if(!lane){ cleanupDrag(); return; }
+function wireUI(){
+  // 幅
+  el('#width').onchange=e=>document.documentElement.style.setProperty('--cw', e.target.value+'px');
+  // 再読み込み
+  el('#reload').onclick=reload;
+  // 行（担当者）上下
+  els('.assignee .up').forEach(b=>b.onclick=()=>moveRow(b.closest('.rowline'), -1));
+  els('.assignee .dn').forEach(b=>b.onclick=()=>moveRow(b.closest('.rowline'), +1));
+  el('#toggleRowSort').onclick=()=>alert('行の上下は左の ▲/▼ でできます');
 
-    // 並び順（レーン内の最後尾）
-    const children = els('.card', lane);
-    const last = children[children.length-1];
-    const newOrder = last ? (Number(last.dataset.order||0)+10) : 10;
+  // 編集
+  els('.card .edit').forEach(b=>b.onclick=(ev)=>{ ev.stopPropagation(); openEditor(b.closest('.card').dataset.id); });
 
-    // Notion へ更新
+  // ドラッグ（ハンドル別）
+  els('.handle-in').forEach(h=>h.addEventListener('pointerdown', e=>startDrag(e,'in')));
+  els('.handle-out').forEach(h=>h.addEventListener('pointerdown', e=>startDrag(e,'out')));
+}
+
+function moveRow(row,dir){
+  const grid=el('#grid'); const rows=els('.rowline',grid).filter(r=>!r.classList.contains('head'));
+  const i=rows.indexOf(row); const to=i+dir; if(to<0 || to>=rows.length) return;
+  dir<0 ? grid.insertBefore(row, rows[to]) : grid.insertBefore(row, rows[to].nextSibling);
+}
+
+/* ==== DnD ==== */
+function startDrag(e,type){
+  const card=e.currentTarget.closest('.card'); const lane=card.closest('.lane');
+  drag={ active:true, type, id:card.dataset.id, startX:e.clientX, startY:e.clientY, moved:false, ghost:E('<div class="ghost"></div>'), originLane:lane };
+  lane.appendChild(drag.ghost);
+  const onMove=(ev)=>{ if(!drag.moved && (Math.abs(ev.clientX-drag.startX)>8 || Math.abs(ev.clientY-drag.startY)>8)) drag.moved=true; };
+  const onUp=async(ev)=>{
+    document.removeEventListener('pointermove',onMove); document.removeEventListener('pointerup',onUp);
+    if(!drag.moved){ cleanupDrag(); return; } // クリック扱い
+    const target = laneFromPoint(ev) || drag.originLane;
+    let dropLane = target;
+    // 枠内専用なら同一レーン以外を無効化
+    if(drag.type==='in' && target!==drag.originLane) dropLane = drag.originLane;
+
+    const cards=els('.card', dropLane); const last=cards[cards.length-1];
+    const newOrder = last ? (+last.dataset.order + 10) : 10;
+
+    const payload={ id:drag.id, assignee_id: dropLane.dataset.assigneeId||null, date: dropLane.dataset.date, order:newOrder };
+    const it = STATE.items.find(x=>x.id===drag.id);
+    const changed = !(it.assignee_id===payload.assignee_id && it.date===payload.date && it.order===payload.order);
+    if(!changed){ cleanupDrag(); return; }
+
     try{
       Loading.show();
-      await patchCard({
-        id: dragData.id,
-        assignee_id: lane.dataset.assigneeId || null,
-        date: lane.dataset.date,
-        order: newOrder
-      });
-      // ローカルも更新して再配置
-      const it = STATE.items.find(x=>x.id===dragData.id);
-      if(it){
-        it.assignee_id = lane.dataset.assigneeId || null;
-        it.date = lane.dataset.date;
-        it.order = newOrder;
-      }
-      placeCards(); // 再描画
-      wireHandlers();
-    }catch(err){
-      console.error(err);
-      alert('更新に失敗しました。');
-    }finally{
-      Loading.hide();
-      cleanupDrag();
-    }
-  }
+      await patch(payload);
+      Object.assign(it, payload);
+      placeCards(); wireUI();
+    }catch(err){ console.error(err); alert('移動に失敗しました'); }
+    finally{ Loading.hide(); cleanupDrag(); }
+  };
+  document.addEventListener('pointermove',onMove,{passive:true});
+  document.addEventListener('pointerup',onUp,{once:true});
+}
+function laneFromPoint(e){ const t=document.elementFromPoint(e.clientX,e.clientY); return t ? t.closest('.lane') : null; }
+function cleanupDrag(){ try{ drag.ghost?.remove(); }catch{} drag={active:false}; }
 
-  function cleanupDrag(){
-    try{ dragData?.ghost?.remove(); }catch{}
-    dragData = null;
-  }
+/* ==== 編集 ==== */
+function openEditor(id){
+  const it=STATE.items.find(x=>x.id===id); if(!it) return;
+  const dlg=el('#editor'), f=el('#editForm'), sel=el('#assigneeSelect');
+  sel.innerHTML='<option value="">（未設定）</option>'+STATE.users.map(u=>`<option value="${esc(u.id)}">${esc(u.name||u.id)}</option>`).join('');
+  f.id.value=it.id; f.date.value=it.date; f.assignee_id.value=it.assignee_id||''; f.plan.value=it.plan||''; f.today_plan.value=it.today_plan||''; f.actual.value=it.actual||''; f.remain.value=it.remain||'';
+  dlg.showModal();
+  dlg.onclose=async()=>{ if(dlg.returnValue!=='ok') return;
+    const payload={ id:f.id.value, date:f.date.value, assignee_id:f.assignee_id.value||null, plan:num(f.plan.value,true), today_plan:num(f.today_plan.value,true), actual:num(f.actual.value,true), remain:num(f.remain.value,true) };
+    try{ Loading.show(); await patch(payload); Object.assign(it,payload); placeCards(); wireUI(); }
+    catch(err){ console.error(err); alert('保存に失敗しました'); }
+    finally{ Loading.hide(); }
+  };
+}
 
-  /********************
-   * 編集モーダル
-   ********************/
-  function openEditor(id){
-    const it = STATE.items.find(x=>x.id===id);
-    if(!it) return;
+/* ==== API ==== */
+async function patch(payload){
+  const r=await fetch(API.UPDATE,{ method:'POST', headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'}, body:JSON.stringify(payload) });
+  if(!r.ok){ let m='更新に失敗しました'; try{ const j=await r.json(); if(j?.notion?.message) m=j.notion.message; }catch{} throw new Error(m); }
+  return r.json().catch(()=>({}));
+}
 
-    const dlg = el('#editor');
-    const f = el('#editForm');
-
-    // 担当者候補
-    const sel = el('#assigneeSelect');
-    sel.innerHTML = '<option value="">（未設定）</option>' +
-      STATE.users.map(u=> `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name||u.id)}</option>`).join('');
-
-    f.id.value = it.id;
-    f.date.value = it.date;
-    f.assignee_id.value = it.assignee_id || '';
-    f.plan.value = it.plan || '';
-    f.today_plan.value = it.today_plan || '';
-    f.actual.value = it.actual || '';
-    f.remain.value = it.remain || '';
-
-    dlg.showModal();
-
-    dlg.onclose = async ()=>{
-      if(dlg.returnValue!=='ok') return;
-      const payload = {
-        id: f.id.value,
-        date: f.date.value,
-        assignee_id: f.assignee_id.value || null,
-        plan: num(f.plan.value,true),
-        today_plan: num(f.today_plan.value,true),
-        actual: num(f.actual.value,true),
-        remain: num(f.remain.value,true),
-      };
-      try{
-        Loading.show();
-        await patchCard(payload, true);
-        // ローカル反映
-        Object.assign(it, payload);
-        placeCards();
-        wireHandlers();
-      }catch(err){
-        console.error(err);
-        alert('保存に失敗しました。');
-      }finally{
-        Loading.hide();
-      }
-    };
-  }
-
-  async function patchCard(payload){
-    const res = await fetch(API.UPDATE, {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'X-HTTP-Method-Override':'PATCH'
-      },
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok){
-      let msg = '更新に失敗しました';
-      try{
-        const js = await res.json();
-        if(js?.notion?.message) msg = js.notion.message;
-      }catch{}
-      throw new Error(msg);
-    }
-    return res.json().catch(()=> ({}));
-  }
-
-  /********************
-   * ページ初期化
-   ********************/
-  function num(v, keepNull=false){
-    if(v==='' || v===null || v===undefined){ return keepNull ? null : 0; }
-    const n = Number(v);
-    return isFinite(n) ? n : 0;
-  }
-  function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-  function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
-
-  function initControlsFromURL(){
-    const u = new URL(location.href);
-    const start = u.searchParams.get('start') || new Date().toISOString().slice(0,10);
-    const days  = Number(u.searchParams.get('days') || 14);
-    el('#start').value = start;
-    el('#days').value = String(days);
-    el('#width').value = String(parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cw'))||320);
-    STATE.start = start; STATE.days = days;
-  }
-
-  function shiftDays(n){
-    const d = new Date(el('#start').value || new Date().toISOString().slice(0,10));
-    d.setDate(d.getDate()+n);
-    STATE.start = d.toISOString().slice(0,10);
-    STATE.days = Number(el('#days').value||14);
-    el('#start').value = STATE.start;
-    reload();
-  }
-
-  async function reload(){
-    try{
-      Loading.show();
-      // 幅反映
-      document.documentElement.style.setProperty('--cw', el('#width').value+'px');
-      await fetchUsers();
-      await fetchGrid();
-      buildBoard();
-      wireHandlers();
-    }catch(err){
-      console.error(err);
-      alert('読み込みに失敗しました。');
-    }finally{
-      Loading.hide();
-    }
-  }
-
-  // 起動
-  (function(){
-    initControlsFromURL();
-    reload();
-  })();
-  </script>
+/* ==== 起動 ==== */
+function initFromURL(){
+  const u=new URL(location.href);
+  STATE.start = u.searchParams.get('start') || new Date().toISOString().slice(0,10);
+  STATE.days  = +(u.searchParams.get('days') || 14);
+  el('#start').value=STATE.start; el('#days').value=String(STATE.days);
+  document.documentElement.style.setProperty('--cw', (el('#width').value||'320')+'px');
+}
+async function reload(){
+  try{ Loading.show(); await getUsers(); await getGrid(); build(); }
+  catch(err){ console.error(err); alert('読み込みに失敗しました'); }
+  finally{ Loading.hide(); }
+}
+(function(){ initFromURL(); reload(); })();
+</script>
 </body>
 </html>
