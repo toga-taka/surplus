@@ -6,12 +6,13 @@
 <title>ボード</title>
 <style>
 :root{
-  --bd:#e5e7eb; --muted:#6b7280; --red:#ef4444; --bg:#f8fafc;
-  /* 列の横幅（ヘッダの「幅」で変更） */
-  --colw: 280px;
+  --bd:#e5e7eb; --muted:#6b7280; --green:#059669; --red:#ef4444; --bg:#fff;
+  --colw: 280px;               /* 列幅（ヘッダの「幅」で変更） */
 }
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;background:#fff;color:#111}
+
+/* ヘッダ */
 header{display:flex;gap:.5rem;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--bd);position:sticky;top:0;background:#fff;z-index:5}
 header h1{margin:0 .5rem 0 0;font-size:16px}
 input[type="date"],select,button{height:30px;border:1px solid var(--bd);border-radius:6px;padding:0 .5rem;background:#fff}
@@ -22,60 +23,67 @@ button{cursor:pointer}
 #saving.show{opacity:1}
 #saving.ok{background:#ecfdf5;border-color:#a7f3d0}
 
-/* 横スクロール許可（幅を広げても崩れない） */
+/* ボード */
 #board{overflow:auto}
-
 .grid{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 56px)}
-
-/* ← 列幅は --colw を使用 */
 .th{display:grid;grid-template-columns:220px repeat(var(--cols), var(--colw));border-bottom:1px solid var(--bd)}
 .th .cell{padding:.5rem;border-right:1px solid var(--bd);background:#fff;position:sticky;top:56px;z-index:3}
 .th .cell.head{background:#fafafa;font-weight:600}
 .th .cell.sun{color:#ef4444}
 .th .cell.sat{background:#f0f7ff}
 .th .cell.hol{color:#fff;background:#ef4444;border-color:#ef4444}
+.th .cell.drop{outline:2px dashed #60a5fa; outline-offset:-2px}
 
 .body{display:grid;grid-template-columns:220px repeat(var(--cols), var(--colw))}
 
+/* 担当者見出し（左） */
 .rowHead{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:.5rem;display:flex;align-items:center;gap:.5rem;position:sticky;left:0;background:#fff;z-index:2}
 .rowHead .handle{cursor:grab;color:var(--muted)}
+.rowHead.drop{outline:2px dashed #60a5fa; outline-offset:-2px}
 
+/* マス（レーン） */
 .lane{
-  min-height:140px;
-  border-right:1px solid var(--bd);
-  border-bottom:1px solid var(--bd);
-  position:relative;background:#fff;
-  /* バッジ用の天井クリアランス */
-  padding-top:27px;
+  min-height:140px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);
+  position:relative;background:#fff;padding-top:27px; /* バッジの逃げ */
 }
 .lane[data-weekday="6"]{background:#f8fbff}
 .lane[data-weekday="0"]{background:#fff5f5}
-
-/* ← 合計バッジ（折返し禁止・見やすく） */
 .lane .sum{
-  position:absolute;top:4px;right:6px;
-  font-size:12px;white-space:nowrap;
-  color:#111;background:rgba(255,255,255,.96);
-  border:1px solid var(--bd);border-radius:999px;
-  padding:1px 8px;box-shadow:0 1px 6px rgba(0,0,0,.06);
-  pointer-events:none;
+  position:absolute;top:4px;right:6px;font-size:12px;white-space:nowrap;
+  color:#111;background:rgba(255,255,255,.96);border:1px solid var(--bd);
+  border-radius:999px;padding:1px 8px;box-shadow:0 1px 6px rgba(0,0,0,.06);pointer-events:none;
 }
+.lane.drop{box-shadow:inset 0 0 0 2px #60a5fa}
 
-.card{margin:8px; padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);cursor:grab}
+/* カード */
+.card{margin:8px;padding:10px;border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);cursor:grab;position:relative}
 .card:active{cursor:grabbing}
-.meta{display:flex;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:6px}
 .tt{font-weight:600;font-size:13px;margin-bottom:4px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:4px}
 .kvs{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .kv{font-size:12px;border:1px solid var(--bd);border-radius:999px;padding:2px 8px;background:#fafafa}
 .kv .label{color:var(--muted)}
-.kv .num[contenteditable="true"]{outline:2px solid transparent;min-width:16px;display:inline-block}
-.kv .num.edited{outline-color:#fde68a;background:#fffbeb}
-
+.kv .num{min-width:12px}
+.editBtn{
+  position:absolute;top:6px;left:6px;border:1px solid var(--bd);border-radius:6px;background:#fff;height:24px;padding:0 6px;cursor:pointer
+}
 .ghost{border:2px dashed #a3a3a3;background:#fafafa;opacity:.8}
-.dropping{box-shadow:inset 0 0 0 2px #60a5fa}
 
+/* コンパクト */
 .compact .card{margin:4px;padding:6px;border-radius:6px}
 .compact .lane{min-height:100px}
+
+/* モーダル */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center;z-index:50}
+.modal.show{display:flex}
+.modal .panel{width:min(560px,calc(100vw - 24px));background:#fff;border:1px solid var(--bd);border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.16);padding:12px}
+.modal h3{margin:6px 0 10px;font-size:16px}
+.form{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center}
+.form input[type="number"]{height:30px;border:1px solid var(--bd);border-radius:6px;padding:0 .5rem}
+.form input[type="date"], .form select{height:30px;border:1px solid var(--bd);border-radius:6px;padding:0 .5rem;background:#fff}
+.modal .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.modal .foot button{height:32px;border:1px solid var(--bd);border-radius:8px;background:#fff;padding:0 12px}
+.modal .foot .primary{background:#0ea5e9;border-color:#0284c7;color:#fff}
 </style>
 </head>
 <body>
@@ -91,7 +99,6 @@ button{cursor:pointer}
   <button id="next">»</button>
   <button id="reload">再読み込み</button>
 
-  <!-- 列の横幅コントロール -->
   <label>幅
     <select id="colw">
       <option value="220">220</option>
@@ -114,14 +121,46 @@ button{cursor:pointer}
   <div class="body" id="body"></div>
 </div>
 
+<!-- 編集モーダル -->
+<div id="modal" class="modal" aria-hidden="true">
+  <div class="panel">
+    <h3>カード編集</h3>
+    <div class="form">
+      <label for="m_date">日付</label>
+      <input id="m_date" type="date">
+      <label for="m_user">担当者</label>
+      <select id="m_user"></select>
+      <label for="m_plan">計画</label>
+      <input id="m_plan" type="number" step="0.01" inputmode="decimal">
+      <label for="m_today">当日予定</label>
+      <input id="m_today" type="number" step="0.01" inputmode="decimal">
+      <label for="m_actual">実績</label>
+      <input id="m_actual" type="number" step="0.01" inputmode="decimal">
+    </div>
+    <div class="foot">
+      <button id="m_cancel">キャンセル</button>
+      <button id="m_save" class="primary">保存</button>
+    </div>
+  </div>
+</div>
+
 <script>
+/* ===== util ===== */
 const $=(s,el=document)=>el.querySelector(s);
 const $$=(s,el=document)=>Array.from(el.querySelectorAll(s));
-const fmtW=w=>['日','月','火','水','木','金','土'][w];
+const esc=s=>String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 const todayStr=()=>new Date().toISOString().slice(0,10);
-function ymd(d){return d.toISOString().slice(0,10);}
-function by(q){ return document.querySelector(q); }
+const fmtW=w=>['日','月','火','水','木','金','土'][w];
+function setColWidth(px){ document.documentElement.style.setProperty('--colw', px+'px'); localStorage.setItem('colw', String(px)); $('#colw').value=String(px); }
+function num(v){ if(v===''||v===null||v===undefined) return null; const n=Number(v); return isFinite(n)?n:null; }
+function numfmt(v){ return (v===null||v===undefined||v==='')?'':String(v); }
+function trim0(n){ return (Math.round(n*100)/100)||0; }
+function laneKey(assignee_id,date){ return `${assignee_id||''}|${date}`; }
 
+/* ===== state ===== */
+let STATE = { dates:[], users:[], items:[] };
+
+/* ===== status toast ===== */
 const Saving = {
   el: $('#saving'),
   show(msg='通信中…'){ this.el.textContent=msg; this.el.classList.add('show'); },
@@ -129,74 +168,44 @@ const Saving = {
   ok(){ this.el.textContent='保存しました'; this.el.classList.add('ok'); setTimeout(()=>this.hide(),800); }
 };
 
-let STATE = { dates:[], users:[], items:[] };
-
+/* ===== API ===== */
 async function getGrid(start, days){
   const r = await fetch(`/notion_grid.php?start=${start}&days=${days}`);
-  if(!r.ok) throw new Error('grid fetch failed');
-  return r.json();
+  if(!r.ok) throw new Error('grid fetch failed'); return r.json();
 }
-async function getUsers(){
-  const r = await fetch('/notion_users.php');
-  if(!r.ok) return {users:[]};
-  return r.json();
-}
+async function getUsers(){ const r=await fetch('/notion_users.php'); if(!r.ok) return {users:[]}; return r.json(); }
 async function patch(payload){
-  const r = await fetch('/notion_update.php',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'},
-    body:JSON.stringify(payload)
-  });
-  let js=null; try{ js = await r.json(); }catch(_){}
+  const r=await fetch('/notion_update.php',{ method:'POST', headers:{'Content-Type':'application/json','X-HTTP-Method-Override':'PATCH'}, body:JSON.stringify(payload) });
+  let js=null; try{ js=await r.json(); }catch(_){}
   if(!r.ok || (js && js.status && js.status!==200)) throw js||new Error('patch failed');
   return js||{status:200};
 }
 
+/* ===== build header/body ===== */
 function buildHeader(){
-  const th = $('#th');
-  th.style.setProperty('--cols', STATE.dates.length);
-  th.innerHTML='';
-  const head = document.createElement('div');
-  head.className='cell head';
-  head.textContent='担当者';
-  th.appendChild(head);
+  const th = $('#th'); th.style.setProperty('--cols', STATE.dates.length); th.innerHTML='';
+  const head = document.createElement('div'); head.className='cell head'; head.textContent='担当者'; th.appendChild(head);
 
   for(const d of STATE.dates){
-    const cell=document.createElement('div');
-    cell.className='cell';
-    const w = d.weekday;
-    if(w===0) cell.classList.add('sun');
-    if(w===6) cell.classList.add('sat');
-    cell.innerHTML = `<div>${d.date.replaceAll('-','/')}（${fmtW(w)}）</div>`;
+    const cell=document.createElement('div'); cell.className='cell';
+    const w=d.weekday; if(w===0) cell.classList.add('sun'); if(w===6) cell.classList.add('sat');
+    cell.dataset.date=d.date; cell.innerHTML=`<div>${d.date.replaceAll('-','/')}（${fmtW(w)}）</div>`;
+    enableHeaderDrop(cell);
     th.appendChild(cell);
   }
 }
 
 function buildBody(){
-  const body = $('#body');
-  body.style.setProperty('--cols', STATE.dates.length);
-  body.innerHTML='';
+  const body=$('#body'); body.style.setProperty('--cols', STATE.dates.length); body.innerHTML='';
 
   for(const u of STATE.users){
-    const rh = document.createElement('div');
-    rh.className='rowHead';
-    rh.innerHTML = `<span class="handle">≡</span> <span class="name">${u.name||'(無名)'}</span>`;
-    rh.dataset.assigneeId = u.id || '';
-    body.appendChild(rh);
+    const rh=document.createElement('div'); rh.className='rowHead'; rh.dataset.assigneeId=u.id||''; rh.innerHTML=`<span class="handle">≡</span> <span>${u.name||'(無名)'}</span>`;
+    enableRowHeadDrop(rh); body.appendChild(rh);
 
     for(const d of STATE.dates){
-      const lane = document.createElement('div');
-      lane.className='lane';
-      lane.dataset.assigneeId = u.id || '';
-      lane.dataset.date = d.date;
-      lane.dataset.weekday = d.weekday;
-
-      const sum = document.createElement('div');
-      sum.className = 'sum';
-      sum.id = `sum-${u.id||''}-${d.date}`;
-      sum.textContent = `計:0 / 予:0 / 実:0`;
-      lane.appendChild(sum);
-
+      const lane=document.createElement('div'); lane.className='lane';
+      lane.dataset.assigneeId=u.id||''; lane.dataset.date=d.date; lane.dataset.weekday=d.weekday;
+      lane.innerHTML=`<div class="sum" id="sum-${u.id||''}-${d.date}">計:0 / 予:0 / 実:0</div>`;
       enableLaneDnD(lane);
       body.appendChild(lane);
     }
@@ -204,237 +213,269 @@ function buildBody(){
 }
 
 function renderCards(){
-  $$('.lane').forEach(l=>l.innerHTML = `<div class="sum" id="sum-${l.dataset.assigneeId||''}-${l.dataset.date}">計:0 / 予:0 / 実:0</div>`);
+  // クリア（バッジは残す）
+  $$('.lane').forEach(l=>{
+    const sum=l.querySelector('.sum'); l.innerHTML=''; l.appendChild(sum);
+  });
 
-  const sums = new Map();
-  const byKey = (a,b)=> (a.order||0)-(b.order||0);
+  // 合計
+  const sums=new Map();
+  const byOrder=(a,b)=> (a.order||0)-(b.order||0);
 
-  for(const it of STATE.items.slice().sort(byKey)){
-    const lane = document.querySelector(`.lane[data-assignee-id="${CSS.escape(it.assignee_id||'')}"][data-date="${it.date}"]`);
+  for(const it of STATE.items.slice().sort(byOrder)){
+    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(it.assignee_id||'')}"][data-date="${it.date}"]`);
     if(!lane) continue;
+    lane.appendChild(cardEl(it));
 
-    const card = cardEl(it);
-    lane.appendChild(card);
-
-    const key = `${it.assignee_id||''}|${it.date}`;
-    const s = sums.get(key) || {plan:0,today:0,actual:0};
-    s.plan  += Number(it.plan||0);
-    s.today += Number(it.today_plan||0);
+    const key=laneKey(it.assignee_id,it.date);
+    const s=sums.get(key)||{plan:0,today:0,actual:0};
+    s.plan += Number(it.plan||0);
+    s.today+= Number(it.today_plan||0);
     s.actual+= Number(it.actual||0);
-    sums.set(key, s);
+    sums.set(key,s);
   }
 
+  // バッジ更新
   $$('.lane').forEach(l=>{
-    const key = `${l.dataset.assigneeId||''}|${l.dataset.date}`;
-    const s = sums.get(key) || {plan:0,today:0,actual:0};
-    const badge = document.getElementById(`sum-${l.dataset.assigneeId||''}-${l.dataset.date}`);
-    if(badge) badge.textContent = `計:${trim0(s.plan)} / 予:${trim0(s.today)} / 実:${trim0(s.actual)}`;
+    const key=laneKey(l.dataset.assigneeId,l.dataset.date);
+    const s=sums.get(key)||{plan:0,today:0,actual:0};
+    l.querySelector('.sum').textContent=`計:${trim0(s.plan)} / 予:${trim0(s.today)} / 実:${trim0(s.actual)}`;
   });
 }
 
-function buildBoard(){ buildHeader(); buildBody(); renderCards(); }
-
+/* ===== card element ===== */
 function cardEl(item){
-  const div = document.createElement('div');
-  div.className='card';
-  div.draggable = true;
-  div.dataset.id = item.id;
-  div.dataset.order = item.order ?? 0;
-  enableCardDnD(div);
+  const div=document.createElement('div'); div.className='card'; div.draggable=true;
+  div.dataset.id=item.id; div.dataset.order=item.order??0;
 
-  const customer = esc(item.customer||'');
-  const task = esc(item.task||'');
-  const content = esc(item.content||'');
-
-  div.innerHTML = `
-    <div class="tt">${task||'(タスクなし)'}</div>
+  div.innerHTML=`
+    <button class="editBtn" title="編集">✎</button>
+    <div class="tt">${esc(item.task||'(タスクなし)')}</div>
     <div class="meta">
-      ${customer?`<span>${customer}</span>`:''}
-      ${content?`<span>${content}</span>`:''}
+      ${item.customer?`<span>${esc(item.customer)}</span>`:''}
+      ${item.content?`<span>${esc(item.content)}</span>`:''}
     </div>
     <div class="kvs">
-      <span class="kv"><span class="label">計画</span>：
-        <span class="num" data-field="plan" contenteditable="true">${numfmt(item.plan)}</span>
-      </span>
-      <span class="kv"><span class="label">当日予定</span>：
-        <span class="num" data-field="today_plan" contenteditable="true">${numfmt(item.today_plan)}</span>
-      </span>
-      <span class="kv"><span class="label">実績</span>：
-        <span class="num" data-field="actual" contenteditable="true">${numfmt(item.actual)}</span>
-      </span>
+      <span class="kv"><span class="label">計画</span>：<span class="num">${numfmt(item.plan)}</span></span>
+      <span class="kv"><span class="label">当日予定</span>：<span class="num">${numfmt(item.today_plan)}</span></span>
+      <span class="kv"><span class="label">実績</span>：<span class="num">${numfmt(item.actual)}</span></span>
     </div>
   `;
 
-  for(const n of div.querySelectorAll('.num')){
-    n.addEventListener('focus', ()=>{ n.dataset._old = n.textContent.trim(); });
-    n.addEventListener('keydown', e=>{
-      if(e.key==='Enter'){ e.preventDefault(); n.blur(); }
-      if(e.key==='Escape'){ e.preventDefault(); n.textContent=n.dataset._old||''; n.blur(); }
-    });
-    n.addEventListener('input', ()=> n.classList.add('edited'));
-    n.addEventListener('blur', async ()=>{
-      const field = n.dataset.field;
-      const val = parseNum(n.textContent);
-      const old = parseNum(n.dataset._old||'');
-      n.classList.remove('edited');
-      if(val===old) return;
-
-      try{
-        Saving.show();
-        await patch({ id: item.id, [field]: val });
-        const idx = STATE.items.findIndex(x=>x.id===item.id);
-        if(idx>=0){ STATE.items[idx][field] = val; }
-        n.textContent = numfmt(val);
-        renderCards();
-        Saving.ok();
-      }catch(err){
-        console.warn(err);
-        alert('保存に失敗しました');
-        n.textContent = numfmt(old);
-      }
-    });
-  }
+  enableCardDnD(div);
+  div.querySelector('.editBtn').addEventListener('click',()=>openModal(item.id));
   return div;
 }
 
-function numfmt(v){ return (v===null || v===undefined || v==='')?'':String(v); }
-function parseNum(t){ const s=String(t).trim(); if(s==='') return null; const n=Number(s.replace(/[^0-9.+-]/g,'')); return isFinite(n)?n:null; }
-function trim0(n){ return (Math.round(n*100)/100)||0; }
-
+/* ===== DnD（カード→レーン内並べ替え） ===== */
 let dragData=null, ghost=null;
+
 function enableCardDnD(card){
-  card.addEventListener('dragstart', e=>{
-    dragData = { id: card.dataset.id, fromLane: card.closest('.lane'), order: Number(card.dataset.order||0), el: card };
-    ghost = card.cloneNode(true);
+  card.addEventListener('dragstart',e=>{
+    dragData={ id:card.dataset.id, fromLane: card.closest('.lane'), order:Number(card.dataset.order||0), el:card };
+    ghost=card.cloneNode(true);
     ghost.classList.add('ghost');
-    ghost.style.width = card.getBoundingClientRect().width+'px';
+    ghost.style.width=card.getBoundingClientRect().width+'px';
     setTimeout(()=>card.style.opacity='.3',0);
     e.dataTransfer.effectAllowed='move';
   });
-  card.addEventListener('dragend', ()=>{
+  card.addEventListener('dragend',()=>{
     if(dragData?.el) dragData.el.style.opacity='';
     dragData=null;
     if(ghost?.parentNode) ghost.parentNode.removeChild(ghost);
     ghost=null;
-    document.querySelectorAll('.lane').forEach(l=>l.classList.remove('dropping'));
+    $$('.lane').forEach(l=>l.classList.remove('drop'));
+    $$('.rowHead').forEach(h=>h.classList.remove('drop'));
+    $$('.th .cell').forEach(h=>h.classList.remove('drop'));
   });
 }
-function enableLaneDnD(lane){
-  lane.addEventListener('dragover', e=>{
-    if(!dragData) return;
-    e.preventDefault();
-    lane.classList.add('dropping');
 
-    if(!ghost) return;
-    const before = getBefore(lane, e.clientY);
-    if(before) lane.insertBefore(ghost, before);
-    else lane.appendChild(ghost);
-  });
-  lane.addEventListener('dragleave', ()=> lane.classList.remove('dropping'));
-  lane.addEventListener('drop', async e=>{
-    if(!dragData) return;
-    e.preventDefault();
-    lane.classList.remove('dropping');
-
-    const children = Array.from(lane.querySelectorAll('.card')).filter(x=>x!==dragData.el);
-    let before = getBefore(lane, e.clientY);
-    let newOrder = 10;
-    if(children.length){
-      if(before){
-        const idx = children.indexOf(before);
-        const prev = children[idx-1];
-        const a = prev ? Number(prev.dataset.order||0) : 0;
-        const b = Number(before.dataset.order||0);
-        newOrder = Math.floor((a+b)/2) || (a+1);
-      }else{
-        const last = children[children.length-1];
-        const a = Number(last.dataset.order||0);
-        newOrder = a + 10;
-      }
-    }
-    const assignee_id = lane.dataset.assigneeId || null;
-    const date = lane.dataset.date;
-
-    try{
-      Saving.show();
-      await patch({ id: dragData.id, assignee_id, date, order: newOrder });
-      const idx = STATE.items.findIndex(x=>x.id===dragData.id);
-      if(idx>=0){
-        STATE.items[idx].assignee_id = assignee_id;
-        STATE.items[idx].date = date;
-        STATE.items[idx].order = newOrder;
-      }
-      renderCards();
-      Saving.ok();
-    }catch(err){
-      console.warn(err);
-      alert('移動に失敗しました');
-    }
-  });
-}
-function getBefore(lane, y){
-  const cards = Array.from(lane.querySelectorAll('.card')).filter(x=>x!==ghost && x!==dragData?.el);
+function beforeInLane(lane, y){
+  const cards=Array.from(lane.querySelectorAll('.card')).filter(x=>x!==ghost && x!==dragData?.el);
   for(const c of cards){
-    const r = c.getBoundingClientRect();
-    if(y < r.top + r.height/2) return c;
+    const r=c.getBoundingClientRect(); if(y < r.top + r.height/2) return c;
   }
   return null;
 }
 
-function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+function enableLaneDnD(lane){
+  lane.addEventListener('dragover',e=>{
+    if(!dragData) return; e.preventDefault(); lane.classList.add('drop');
+    if(!ghost) return;
+    const before=beforeInLane(lane,e.clientY);
+    if(before) lane.insertBefore(ghost,before); else lane.appendChild(ghost);
+  });
+  lane.addEventListener('dragleave',()=>lane.classList.remove('drop'));
+  lane.addEventListener('drop',async e=>{
+    if(!dragData) return; e.preventDefault(); lane.classList.remove('drop');
 
-/* 列幅コントロール */
-function setColWidth(px){
-  document.documentElement.style.setProperty('--colw', px+'px');
-  localStorage.setItem('colw', String(px));
-  $('#colw').value = String(px);
+    // 新しい order を計算
+    const others=Array.from(lane.querySelectorAll('.card')).filter(x=>x!==dragData.el);
+    let newOrder=10;
+    if(others.length){
+      const before=beforeInLane(lane,e.clientY);
+      if(before){
+        const idx=others.indexOf(before);
+        const prev=others[idx-1];
+        const a=prev?Number(prev.dataset.order||0):0;
+        const b=Number(before.dataset.order||0);
+        newOrder=Math.floor((a+b)/2)|| (a+1);
+      }else{
+        const last=others[others.length-1]; newOrder=Number(last.dataset.order||0)+10;
+      }
+    }
+    const assignee_id=lane.dataset.assigneeId||null;
+    const date=lane.dataset.date;
+
+    try{
+      Saving.show();
+      await patch({ id: dragData.id, assignee_id, date, order:newOrder });
+      const idx=STATE.items.findIndex(x=>x.id===dragData.id);
+      if(idx>=0){ Object.assign(STATE.items[idx],{assignee_id,date,order:newOrder}); }
+      renderCards(); Saving.ok();
+    }catch(err){ console.warn(err); alert('移動に失敗しました'); }
+  });
 }
 
+/* ===== 枠外ドロップ：日付ヘッダ／担当者見出し ===== */
+function enableHeaderDrop(cell){
+  cell.addEventListener('dragover',e=>{ if(!dragData) return; e.preventDefault(); cell.classList.add('drop'); });
+  cell.addEventListener('dragleave',()=>cell.classList.remove('drop'));
+  cell.addEventListener('drop',async e=>{
+    if(!dragData) return; e.preventDefault(); cell.classList.remove('drop');
+    const newDate=cell.dataset.date;
+    const from=dragData.fromLane; const assignee_id=from?.dataset.assigneeId||null;
+
+    // 末尾 order
+    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(assignee_id||'')}"][data-date="${newDate}"]`);
+    let newOrder=10;
+    if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=Number(last.dataset.order||0)+10; }
+
+    try{
+      Saving.show();
+      await patch({ id:dragData.id, date:newDate, order:newOrder });
+      const idx=STATE.items.findIndex(x=>x.id===dragData.id);
+      if(idx>=0){ Object.assign(STATE.items[idx],{date:newDate,order:newOrder}); }
+      renderCards(); Saving.ok();
+    }catch(err){ console.warn(err); alert('日付変更に失敗しました'); }
+  });
+}
+
+function enableRowHeadDrop(head){
+  head.addEventListener('dragover',e=>{ if(!dragData) return; e.preventDefault(); head.classList.add('drop'); });
+  head.addEventListener('dragleave',()=>head.classList.remove('drop'));
+  head.addEventListener('drop',async e=>{
+    if(!dragData) return; e.preventDefault(); head.classList.remove('drop');
+    const newAssignee=head.dataset.assigneeId||null;
+    const from=dragData.fromLane; const date=from?.dataset.date;
+
+    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(newAssignee||'')}"][data-date="${date}"]`);
+    let newOrder=10; if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=Number(last.dataset.order||0)+10; }
+
+    try{
+      Saving.show();
+      await patch({ id:dragData.id, assignee_id:newAssignee, order:newOrder });
+      const idx=STATE.items.findIndex(x=>x.id===dragData.id);
+      if(idx>=0){ Object.assign(STATE.items[idx],{assignee_id:newAssignee,order:newOrder}); }
+      renderCards(); Saving.ok();
+    }catch(err){ console.warn(err); alert('担当者変更に失敗しました'); }
+  });
+}
+
+/* ===== 編集モーダル ===== */
+let modalItemId=null;
+function openModal(id){
+  modalItemId=id;
+  const it=STATE.items.find(x=>x.id===id); if(!it) return;
+
+  // 担当セレクト
+  const sel=$('#m_user'); sel.innerHTML='';
+  for(const u of STATE.users){
+    const opt=document.createElement('option'); opt.value=u.id||''; opt.textContent=u.name||'(無名)'; sel.appendChild(opt);
+  }
+  $('#m_date').value = it.date || todayStr();
+  $('#m_user').value = it.assignee_id || '';
+  $('#m_plan').value = it.plan ?? '';
+  $('#m_today').value = it.today_plan ?? '';
+  $('#m_actual').value = it.actual ?? '';
+
+  $('#modal').classList.add('show'); $('#modal').setAttribute('aria-hidden','false');
+}
+function closeModal(){
+  modalItemId=null;
+  $('#modal').classList.remove('show'); $('#modal').setAttribute('aria-hidden','true');
+}
+$('#m_cancel').addEventListener('click', closeModal);
+$('#modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
+
+$('#m_save').addEventListener('click', async ()=>{
+  if(!modalItemId) return;
+  const it=STATE.items.find(x=>x.id===modalItemId); if(!it) return;
+
+  const payload={ id:it.id };
+  const newDate=$('#m_date').value||it.date;
+  const newUser=$('#m_user').value||null;
+  const newPlan=num($('#m_plan').value);
+  const newToday=num($('#m_today').value);
+  const newActual=num($('#m_actual').value);
+
+  if(newDate!==it.date) payload.date=newDate;
+  if(newUser!==it.assignee_id) payload.assignee_id=newUser;
+  payload.plan = newPlan;
+  payload.today_plan = newToday;
+  payload.actual = newActual;
+
+  // 並び末尾へ（行や列が変わる場合）
+  if(payload.date || payload.assignee_id){
+    const date=payload.date||it.date, user=payload.assignee_id||it.assignee_id;
+    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(user||'')}"][data-date="${date}"]`);
+    let newOrder=10; if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=Number(last.dataset.order||0)+10; }
+    payload.order=newOrder;
+  }
+
+  try{
+    Saving.show();
+    await patch(payload);
+    Object.assign(it,{
+      date:newDate, assignee_id:newUser,
+      plan:newPlan, today_plan:newToday, actual:newActual,
+      order: payload.order ?? it.order
+    });
+    closeModal();
+    renderCards();
+    Saving.ok();
+  }catch(err){ console.warn(err); alert('保存に失敗しました'); }
+});
+
+/* ===== load & UI ===== */
 function setFromQuery(){
-  const p = new URLSearchParams(location.search);
-  const s = p.get('start') || todayStr();
-  const d = Number(p.get('days') || 14);
-  $('#start').value = s; $('#days').value = d;
-  // 幅（保存済みがあれば使用）
-  const saved = Number(localStorage.getItem('colw')||'0');
-  setColWidth(saved>0?saved:280);
+  const p=new URLSearchParams(location.search);
+  const s=p.get('start')||todayStr(); const d=Number(p.get('days')||14);
+  $('#start').value=s; $('#days').value=d;
+  const saved=Number(localStorage.getItem('colw')||'0'); setColWidth(saved>0?saved:280);
 }
-
 async function reload(){
-  const s = $('#start').value;
-  const d = Number($('#days').value||14);
+  const s=$('#start').value; const d=Number($('#days').value||14);
   history.replaceState(null,'',`?start=${s}&days=${d}`);
   try{
     Saving.show();
     const [grid, usersResp] = await Promise.all([ getGrid(s,d), getUsers() ]);
     const users = (usersResp.users && usersResp.users.length) ? usersResp.users : (grid.users||[]);
-    STATE = { dates: grid.dates||[], users: users||[], items: grid.items||[] };
-    buildBoard();
+    STATE={ dates:grid.dates||[], users:users||[], items:grid.items||[] };
+    buildHeader(); buildBody(); renderCards();
   }finally{ Saving.hide(); }
 }
 function bindUI(){
-  $('#prev').addEventListener('click', ()=>{
-    const dt = new Date($('#start').value); dt.setDate(dt.getDate() - Number($('#days').value||14));
-    $('#start').value = ymd(dt); reload();
-  });
-  $('#next').addEventListener('click', ()=>{
-    const dt = new Date($('#start').value); dt.setDate(dt.getDate() + Number($('#days').value||14));
-    $('#start').value = ymd(dt); reload();
-  });
+  $('#prev').addEventListener('click', ()=>{ const dt=new Date($('#start').value); dt.setDate(dt.getDate()-Number($('#days').value||14)); $('#start').value=dt.toISOString().slice(0,10); reload(); });
+  $('#next').addEventListener('click', ()=>{ const dt=new Date($('#start').value); dt.setDate(dt.getDate()+Number($('#days').value||14)); $('#start').value=dt.toISOString().slice(0,10); reload(); });
   $('#reload').addEventListener('click', reload);
   $('#start').addEventListener('change', reload);
   $('#days').addEventListener('change', reload);
-  $('#compact').addEventListener('change', e=>{
-    document.body.classList.toggle('compact', e.target.checked);
-  });
+  $('#compact').addEventListener('change', e=> document.body.classList.toggle('compact', e.target.checked));
   $('#colw').addEventListener('change', e=> setColWidth(Number(e.target.value||280)));
 }
 
-(async function init(){
-  setFromQuery();
-  bindUI();
-  await reload();
-})();
+(async function init(){ setFromQuery(); bindUI(); await reload(); })();
 </script>
 </body>
 </html>
