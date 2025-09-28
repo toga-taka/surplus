@@ -1,0 +1,63 @@
+<!doctype html>
+const children = els('.card', lane);
+let before = null;
+for(const ch of children){
+const rect = ch.getBoundingClientRect();
+if(e.clientY < rect.top + rect.height/2){ before = ch; break; }
+}
+let newOrder;
+if(!before){
+// 末尾
+const last = children[children.length-1];
+newOrder = last ? Number(last.dataset.order)+10 : 10;
+}else{
+const idx = children.indexOf(before);
+const prev = children[idx-1];
+const a = prev? Number(prev.dataset.order) : 0;
+const b = Number(before.dataset.order);
+newOrder = Math.floor((a+b)/2) || (b-1);
+}
+
+
+const assignee_id = lane.dataset.assigneeId || null;
+const date = lane.dataset.date;
+
+
+await patchCard({ id: dragData.id, assignee_id, date, order:newOrder });
+});
+}
+
+
+// ======================== サーバ更新 ========================
+async function patchCard(payload){
+Loading.show();
+try{
+const res = await fetch(API.UPDATE, {
+method:'PATCH', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+});
+const js = await res.json();
+if(res.ok){
+// ローカル反映（楽観的）
+const i = cards.findIndex(x=>x.id===payload.id);
+if(i>=0){
+cards[i] = { ...cards[i],
+assignee_id: payload.assignee_id ?? cards[i].assignee_id,
+date: payload.date ?? cards[i].date,
+today_plan: payload.plan ?? cards[i].today_plan,
+actual: payload.actual ?? cards[i].actual,
+order: payload.order ?? cards[i].order
+};
+}
+renderBoard();
+msg(`保存しました`);
+}else{
+console.warn(js); alert(`保存に失敗しました: ${js.error||res.status}`);
+}
+} finally{ Loading.hide(); }
+}
+
+
+function msg(t){ el('#status').textContent = t; setTimeout(()=> el('#status').textContent='', 2500); }
+</script>
+</body>
+</html>
