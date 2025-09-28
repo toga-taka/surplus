@@ -2,8 +2,8 @@
 mb_internal_encoding('UTF-8');
 require __DIR__.'/../bootstrap.php';
 
-/* ---------- Notion HTTP ---------- */
-function notion_req(string $url, string $token, ?string $payload = null): array {
+/* ---------------- Notion HTTP ---------------- */
+function notion_req(string $url, string $token, ?string $payload=null): array {
   $ch = curl_init($url);
   $hdr = [
     'Authorization: Bearer '.$token,
@@ -19,10 +19,11 @@ function notion_req(string $url, string $token, ?string $payload = null): array 
   return [$code, $body];
 }
 
-/* ---------- helpers ---------- */
+/* --------------- helpers --------------- */
 function page_title(string $id, string $token): string {
   static $cache = [];
   if (isset($cache[$id])) return $cache[$id];
+
   [$code, $body] = notion_req("https://api.notion.com/v1/pages/$id", $token);
   $title = '';
   if ($code === 200) {
@@ -36,28 +37,28 @@ function page_title(string $id, string $token): string {
       }
     }
   }
-  // アクセス権が無い等で取れなければ ID を返す（null にはしない）
-  return $cache[$id] = ($title !== '' ? $title : $id);
-}
-
-function extract_text(array $prop): ?string {
-  $t = $prop['type'] ?? '';
-  if ($t === 'title' || $t === 'rich_text') {
-    $s = '';
-    foreach ($prop[$t] as $x) $s .= ($x['plain_text'] ?? '');
-    return $s;
-  }
-  return null;
+  return $cache[$id] = ($title !== '' ? $title : $id); // 取れなければIDを返す
 }
 
 function relation_titles(?array $prop, string $token): ?string {
   if (!is_array($prop) || ($prop['type'] ?? '') !== 'relation') return null;
   $names = [];
   foreach ($prop['relation'] as $r) {
-    $id = $r['id'] ?? '';
-    if ($id) $names[] = page_title($id, $token);
+    $pid = $r['id'] ?? '';
+    if ($pid) $names[] = page_title($pid, $token);
   }
-  return implode('、', array_filter($names, fn($x)=>$x!==''));
+  return $names ? implode('、', $names) : null;
+}
+
+function extract_text(?array $prop): ?string {
+  if (!is_array($prop)) return null;
+  $t = $prop['type'] ?? '';
+  if ($t === 'title' || $t === 'rich_text') {
+    $s = '';
+    foreach ($prop[$t] as $x) $s .= ($x['plain_text'] ?? '');
+    return ($s === '') ? null : $s;
+  }
+  return null;
 }
 
 function pick_key(array $props, array $needles): ?string {
@@ -69,7 +70,7 @@ function pick_key(array $props, array $needles): ?string {
   return null;
 }
 
-/* ---------- main ---------- */
+/* --------------- main --------------- */
 $token = getenv('NOTION_TOKEN');
 $db    = getenv('NOTION_DATABASE_ID');
 if (!$token || !$db) {
@@ -92,29 +93,25 @@ if ($code === 200 && ($raw['object'] ?? '') === 'list') {
   foreach ($raw['results'] as $page) {
     $props = $page['properties'] ?? [];
 
-    // まず名前で探す
+    // 1) まず名前で探す（前の実装互換）
     $kTask = pick_key($props, ['タスク','タスク名','案件タスク']);
     $kCalc = pick_key($props, ['計算案件','計算 案件','計算案件名','計算']);
 
-    // relation 一覧（自動判定用）
-    $relationKeys = [];
-    foreach ($props as $n => $p) {
-      if (($p['type'] ?? '') === 'relation') $relationKeys[] = $n;
-    }
-
-    // タスクが見つからなければ、先頭の relation をタスクとみなす
-    if ($kTask === null && !empty($relationKeys)) $kTask = $relationKeys[0];
-
-    // 計算案件が見つからなければ、
-    // 1) 「計算」を含む relation、2) それも無ければ 2つ目の relation を使う
-    if ($kCalc === null) {
-      foreach ($relationKeys as $n) { if (mb_strpos($n,'計算') !== false) { $kCalc = $n; break; } }
-      if ($kCalc === null && count($relationKeys) >= 2) {
-        $kCalc = ($relationKeys[0] === $kTask) ? $relationKeys[1] : $relationKeys[0];
+    // 2) 「値の入っている relation を優先採用」へフォールバック
+    //    （ページごとに relation を見て、relation配列が空でないものを優先的に使う）
+    if ($kTask === null || empty($props[$kTask]['relation'])) {
+      foreach ($props as $n => $p) {
+        if (($p['type'] ?? '') === 'relation' && !empty($p['relation'])) { $kTask = $n; break; }
       }
     }
 
-    // 値の取り出し
+    if ($kCalc === null || empty($props[$kCalc]['relation'])) {
+      foreach ($props as $n => $p) {
+        if (($p['type'] ?? '') === 'relation' && !empty($p['relation']) && $n !== $kTask) { $kCalc = $n; break; }
+      }
+    }
+
+    // 値の取り出し（relation→タイトルに解決 / text系→plain_text）
     $task = null;
     if ($kTask !== null && isset($props[$kTask])) {
       $p = $props[$kTask];
