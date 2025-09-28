@@ -6,84 +6,104 @@
 <title>ボード</title>
 <style>
 :root{
-  --bd:#e5e7eb; --muted:#6b7280; --green:#059669; --red:#ef4444; --bg:#fff;
-  --colw: 280px;               /* 列幅（ヘッダの「幅」で変更） */
+  --bd:#e5e7eb; --muted:#6b7280; --bg:#fff;
+  --colw: 280px;   /* 列幅（UIで変更可） */
 }
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;background:#fff;color:#111}
 
-/* ヘッダ */
-header{display:flex;gap:.5rem;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--bd);position:sticky;top:0;background:#fff;z-index:5}
+/* 上部コントロールバー（ページ固定） */
+header{
+  display:flex;gap:.5rem;align-items:center;padding:.5rem .75rem;
+  border-bottom:1px solid var(--bd);position:sticky;top:0;background:#fff;z-index:1000;
+}
 header h1{margin:0 .5rem 0 0;font-size:16px}
 input[type="date"],select,button{height:30px;border:1px solid var(--bd);border-radius:6px;padding:0 .5rem;background:#fff}
 button{cursor:pointer}
 
-/* ステータス */
-#saving{position:fixed;right:12px;bottom:12px;padding:.5rem .75rem;border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.08);opacity:0;pointer-events:none;transition:opacity .2s}
+/* ステータス・トースト */
+#saving{
+  position:fixed;right:12px;bottom:12px;padding:.55rem .8rem;border:1px solid var(--bd);
+  border-radius:10px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.12);
+  opacity:0;pointer-events:none;transition:opacity .15s;z-index:9999;
+}
 #saving.show{opacity:1}
 #saving.ok{background:#ecfdf5;border-color:#a7f3d0}
 
-/* ボード */
-#board{overflow:auto}
-.grid{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 56px)}
+/* スクロール領域（この中だけ縦スクロール） */
+#board{
+  overflow:auto;
+  height: calc(100vh - var(--head-h,56px));  /* JSでheader高さを反映 */
+}
 
-/* 日付ヘッダ */
+/* グリッド骨格 */
+.grid{display:grid;grid-template-columns:220px 1fr}
+
+/* 日付ヘッダ（ボード内で固定） */
 .th{
   display:grid;
   grid-template-columns:220px repeat(var(--cols), var(--colw));
   border-bottom:1px solid var(--bd);
-  position:sticky; top:56px; z-index:4;     /* ← ヘッダを固定 */
+  position:sticky; top:0; z-index:10;           /* ← これで固定 */
   background:#fff;
 }
-.th .cell{padding:.5rem;border-right:1px solid var(--bd);background:#fff}
+.th .cell{padding:.5rem;border-right:1px solid var(--bd);background:#fff;white-space:nowrap}
 .th .cell.head{font-weight:600}
 .th .cell.sun{color:#ef4444}
-.th .cell.sat{background:#f0f7ff}
+.th .cell.sat{background:#f3f7ff}
 .th .cell.hol{color:#fff;background:#ef4444;border-color:#ef4444}
 .th .cell.drop{outline:2px dashed #60a5fa; outline-offset:-2px}
 
 /* 本体 */
 .body{display:grid;grid-template-columns:220px repeat(var(--cols), var(--colw))}
 
-/* 担当者見出し（左） */
-.rowHead{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:.5rem;display:flex;align-items:center;gap:.5rem;position:sticky;left:0;background:#fff;z-index:2}
+/* 左の担当者欄 */
+.rowHead{
+  border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);
+  padding:.5rem;display:flex;align-items:center;gap:.5rem;
+  position:sticky;left:0;background:#fff;z-index:5;
+}
 .rowHead .handle{cursor:grab;color:var(--muted)}
 .rowHead.drop{outline:2px dashed #60a5fa; outline-offset:-2px}
 
-/* マス（レーン） */
+/* 1マス（レーン） */
 .lane{
   min-height:140px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);
-  position:relative;background:#fff;padding-top:27px; /* バッジの逃げ */
+  position:relative;background:#fff;padding-top:27px; /* 合計バッジ余白 */
 }
 .lane[data-weekday="6"]{background:#f8fbff}
 .lane[data-weekday="0"]{background:#fff5f5}
 .lane .sum{
   position:absolute;top:4px;right:6px;font-size:12px;white-space:nowrap;
   color:#111;background:rgba(255,255,255,.96);border:1px solid var(--bd);
-  border-radius:999px;padding:1px 8px;box-shadow:0 1px 6px rgba(0,0,0,.06);pointer-events:none;
+  border-radius:999px;padding:1px 8px;box-shadow:0 1px 6px rgba(0,0,0,.06);
+  pointer-events:none;     /* ← DnDの邪魔をしない */
 }
 .lane.drop{box-shadow:inset 0 0 0 2px #60a5fa}
 
 /* カード */
-.card{margin:8px;padding:10px 34px 10px 10px; /* 右に✎の余白 */ border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);cursor:grab;position:relative}
+.card{
+  margin:8px;padding:10px 34px 10px 10px;border:1px solid var(--bd);
+  border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);
+  cursor:grab;position:relative
+}
 .card:active{cursor:grabbing}
+.editBtn{
+  position:absolute;top:6px;right:6px;height:24px;padding:0 6px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer
+}
 .tt{font-weight:600;font-size:13px;margin-bottom:4px}
 .meta{display:flex;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:4px}
 .kvs{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .kv{font-size:12px;border:1px solid var(--bd);border-radius:999px;padding:2px 8px;background:#fafafa}
 .kv .label{color:var(--muted)}
 .kv .num{min-width:12px}
-.editBtn{
-  position:absolute;top:6px;right:6px; /* ← 右上配置で本文に被らない */ 
-  border:1px solid var(--bd);border-radius:6px;background:#fff;height:24px;padding:0 6px;cursor:pointer
-}
 .ghost{border:2px dashed #a3a3a3;background:#fafafa;opacity:.8}
 
 /* コンパクト */
 .compact .card{margin:4px;padding:6px 30px 6px 6px;border-radius:6px}
 .compact .lane{min-height:100px}
 
-/* モーダル */
+/* 編集モーダル */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center;z-index:50}
 .modal.show{display:flex}
 .modal .panel{width:min(560px,calc(100vw - 24px));background:#fff;border:1px solid var(--bd);border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.16);padding:12px}
@@ -111,7 +131,6 @@ button{cursor:pointer}
 
   <label>幅
     <select id="colw">
-      <option value="220">220</option>
       <option value="240">240</option>
       <option value="260">260</option>
       <option value="280" selected>280</option>
@@ -136,18 +155,12 @@ button{cursor:pointer}
   <div class="panel">
     <h3>カード編集</h3>
     <div class="form">
-      <label for="m_date">日付</label>
-      <input id="m_date" type="date">
-      <label for="m_user">担当者</label>
-      <select id="m_user"></select>
-      <label for="m_plan">計画</label>
-      <input id="m_plan" type="number" step="0.01" inputmode="decimal">
-      <label for="m_today">当日予定</label>
-      <input id="m_today" type="number" step="0.01" inputmode="decimal">
-      <label for="m_actual">実績</label>
-      <input id="m_actual" type="number" step="0.01" inputmode="decimal">
-      <label for="m_remain">残時間</label>
-      <input id="m_remain" type="number" step="0.01" inputmode="decimal">
+      <label for="m_date">日付</label><input id="m_date" type="date">
+      <label for="m_user">担当者</label><select id="m_user"></select>
+      <label for="m_plan">計画</label><input id="m_plan" type="number" step="0.01" inputmode="decimal">
+      <label for="m_today">当日予定</label><input id="m_today" type="number" step="0.01" inputmode="decimal">
+      <label for="m_actual">実績</label><input id="m_actual" type="number" step="0.01" inputmode="decimal">
+      <label for="m_remain">残時間</label><input id="m_remain" type="number" step="0.01" inputmode="decimal">
     </div>
     <div class="foot">
       <button id="m_cancel">キャンセル</button>
@@ -157,32 +170,35 @@ button{cursor:pointer}
 </div>
 
 <script>
-/* ===== util ===== */
+/* ===== utils ===== */
 const $=(s,el=document)=>el.querySelector(s);
 const $$=(s,el=document)=>Array.from(el.querySelectorAll(s));
 const esc=s=>String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 const todayStr=()=>new Date().toISOString().slice(0,10);
 const fmtW=w=>['日','月','火','水','木','金','土'][w];
+const num=v=> (v===''||v===null||v===undefined)?null:(isFinite(+v)?+v:null);
+const trim2=x=>Math.round((+x||0)*100)/100;
 function setColWidth(px){ document.documentElement.style.setProperty('--colw', px+'px'); localStorage.setItem('colw', String(px)); $('#colw').value=String(px); }
-function num(v){ if(v===''||v===null||v===undefined) return null; const n=Number(v); return isFinite(n)?n:null; }
-function numfmt(v){ return (v===null||v===undefined||v==='')?'':String(v); }
-function trim0(n){ return (Math.round(n*100)/100)||0; }
-function laneKey(assignee_id,date){ return `${assignee_id||''}|${date}`; }
 
-/* ===== state ===== */
-let STATE = { dates:[], users:[], items:[] };
+/* header 高さをCSS変数へ反映（board高さ計算用） */
+function applyHeadHeight(){
+  const h = $('header').getBoundingClientRect().height|0;
+  document.documentElement.style.setProperty('--head-h', h+'px');
+}
 
 /* ===== status toast ===== */
 const Saving = {
   el: $('#saving'),
   show(msg='通信中…'){ this.el.textContent=msg; this.el.classList.add('show'); },
-  hide(){ this.el.classList.remove('show'); this.el.classList.remove('ok'); this.el.textContent='通信中…'; },
-  ok(){ this.el.textContent='保存しました'; this.el.classList.add('ok'); setTimeout(()=>this.hide(),800); }
+  ok(){ this.el.textContent='保存しました'; this.el.classList.add('ok'); setTimeout(()=>this.hide(),900); },
+  hide(){ this.el.classList.remove('show'); this.el.classList.remove('ok'); this.el.textContent='通信中…'; }
 };
 
-/* ===== API ===== */
-async function getGrid(start, days){
-  const r = await fetch(`/notion_grid.php?start=${start}&days=${days}`);
+/* ===== state & API ===== */
+let STATE={dates:[], users:[], items:[]};
+
+async function getGrid(start,days){
+  const r=await fetch(`/notion_grid.php?start=${start}&days=${days}`);
   if(!r.ok) throw new Error('grid fetch failed'); return r.json();
 }
 async function getUsers(){ const r=await fetch('/notion_users.php'); if(!r.ok) return {users:[]}; return r.json(); }
@@ -193,65 +209,50 @@ async function patch(payload){
   return js||{status:200};
 }
 
-/* ===== build header/body ===== */
+/* ===== build ===== */
 function buildHeader(){
-  const th = $('#th'); th.style.setProperty('--cols', STATE.dates.length); th.innerHTML='';
-  const head = document.createElement('div'); head.className='cell head'; head.textContent='担当者'; th.appendChild(head);
-
+  const th=$('#th'); th.style.setProperty('--cols', STATE.dates.length); th.innerHTML='';
+  const head=document.createElement('div'); head.className='cell head'; head.textContent='担当者'; th.appendChild(head);
   for(const d of STATE.dates){
     const cell=document.createElement('div'); cell.className='cell';
     const w=d.weekday; if(w===0) cell.classList.add('sun'); if(w===6) cell.classList.add('sat');
-    cell.dataset.date=d.date; cell.innerHTML=`<div>${d.date.replaceAll('-','/')}（${fmtW(w)}）</div>`;
+    cell.dataset.date=d.date; cell.innerHTML=`${d.date.replaceAll('-','/')}（${fmtW(w)}）`;
     enableHeaderDrop(cell);
     th.appendChild(cell);
   }
 }
-
 function buildBody(){
   const body=$('#body'); body.style.setProperty('--cols', STATE.dates.length); body.innerHTML='';
-
   for(const u of STATE.users){
     const rh=document.createElement('div'); rh.className='rowHead'; rh.dataset.assigneeId=u.id||''; rh.innerHTML=`<span class="handle" draggable="true" title="並べ替え">≡</span> <span>${u.name||'(無名)'}</span>`;
     enableRowHeadDrop(rh); enableRowReorder(rh); body.appendChild(rh);
-
     for(const d of STATE.dates){
       const lane=document.createElement('div'); lane.className='lane';
       lane.dataset.assigneeId=u.id||''; lane.dataset.date=d.date; lane.dataset.weekday=d.weekday;
-      lane.innerHTML=`<div class="sum" id="sum-${u.id||''}-${d.date}">計:0 / 予:0 / 実:0</div>`;
-      enableLaneDnD(lane);
-      body.appendChild(lane);
+      lane.innerHTML=`<div class="sum">計:0 / 予:0 / 実:0</div>`;
+      enableLaneDnD(lane); body.appendChild(lane);
     }
   }
 }
-
 function renderCards(){
-  // クリア（バッジは残す）
-  $$('.lane').forEach(l=>{
-    const sum=l.querySelector('.sum'); l.innerHTML=''; l.appendChild(sum);
-  });
+  // 既存消去（バッジは残す）
+  $$('.lane').forEach(l=>{ const s=l.querySelector('.sum'); l.innerHTML=''; l.appendChild(s); });
 
   // 合計
   const sums=new Map();
-  const byOrder=(a,b)=> (a.order||0)-(b.order||0);
-
-  for(const it of STATE.items.slice().sort(byOrder)){
+  for(const it of STATE.items.slice().sort((a,b)=>(a.order||0)-(b.order||0))){
     const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(it.assignee_id||'')}"][data-date="${it.date}"]`);
     if(!lane) continue;
     lane.appendChild(cardEl(it));
-
-    const key=laneKey(it.assignee_id,it.date);
+    const key=`${it.assignee_id||''}|${it.date}`;
     const s=sums.get(key)||{plan:0,today:0,actual:0};
-    s.plan += Number(it.plan||0);
-    s.today+= Number(it.today_plan||0);
-    s.actual+= Number(it.actual||0);
+    s.plan+=+it.plan||0; s.today+=+it.today_plan||0; s.actual+=+it.actual||0;
     sums.set(key,s);
   }
-
-  // バッジ更新
   $$('.lane').forEach(l=>{
-    const key=laneKey(l.dataset.assigneeId,l.dataset.date);
+    const key=`${l.dataset.assigneeId||''}|${l.dataset.date}`;
     const s=sums.get(key)||{plan:0,today:0,actual:0};
-    l.querySelector('.sum').textContent=`計:${trim0(s.plan)} / 予:${trim0(s.today)} / 実:${trim0(s.actual)}`;
+    l.querySelector('.sum').textContent=`計:${trim2(s.plan)} / 予:${trim2(s.today)} / 実:${trim2(s.actual)}`;
   });
 }
 
@@ -259,7 +260,6 @@ function renderCards(){
 function cardEl(item){
   const div=document.createElement('div'); div.className='card'; div.draggable=true;
   div.dataset.id=item.id; div.dataset.order=item.order??0;
-
   div.innerHTML=`
     <button class="editBtn" title="編集">✎</button>
     <div class="tt">${esc(item.task||'(タスクなし)')}</div>
@@ -268,49 +268,51 @@ function cardEl(item){
       ${item.content?`<span>${esc(item.content)}</span>`:''}
     </div>
     <div class="kvs">
-      <span class="kv"><span class="label">計画</span>：<span class="num">${numfmt(item.plan)}</span></span>
-      <span class="kv"><span class="label">当日予定</span>：<span class="num">${numfmt(item.today_plan)}</span></span>
-      <span class="kv"><span class="label">実績</span>：<span class="num">${numfmt(item.actual)}</span></span>
-      <span class="kv"><span class="label">残時間</span>：<span class="num">${numfmt(item.remain)}</span></span>
-    </div>
-  `;
-
+      <span class="kv"><span class="label">計画</span>：<span class="num">${item.plan??''}</span></span>
+      <span class="kv"><span class="label">当日予定</span>：<span class="num">${item.today_plan??''}</span></span>
+      <span class="kv"><span class="label">実績</span>：<span class="num">${item.actual??''}</span></span>
+      <span class="kv"><span class="label">残時間</span>：<span class="num">${item.remain??''}</span></span>
+    </div>`;
+  const btn=div.querySelector('.editBtn');
+  btn.draggable=false;
+  btn.addEventListener('mousedown',e=>e.stopPropagation());
+  btn.addEventListener('click',()=>openModal(item.id));
   enableCardDnD(div);
-  div.querySelector('.editBtn').addEventListener('click',()=>openModal(item.id));
   return div;
 }
 
-/* ===== DnD（カード→レーン内並べ替え） ===== */
+/* ===== DnD helpers ===== */
 let dragData=null, ghost=null;
-
-function enableCardDnD(card){
-  card.addEventListener('dragstart',e=>{
-    dragData={ id:card.dataset.id, fromLane: card.closest('.lane'), order:Number(card.dataset.order||0), el:card };
-    ghost=card.cloneNode(true);
-    ghost.classList.add('ghost');
-    ghost.style.width=card.getBoundingClientRect().width+'px';
-    setTimeout(()=>card.style.opacity='.3',0);
-    e.dataTransfer.effectAllowed='move';
-  });
-  card.addEventListener('dragend',()=>{
-    if(dragData?.el) dragData.el.style.opacity='';
-    dragData=null;
-    if(ghost?.parentNode) ghost.parentNode.removeChild(ghost);
-    ghost=null;
-    $$('.lane').forEach(l=>l.classList.remove('drop'));
-    $$('.rowHead').forEach(h=>h.classList.remove('drop'));
-    $$('.th .cell').forEach(h=>h.classList.remove('drop'));
-  });
+function dndCleanup(){
+  if(dragData?.el) dragData.el.style.opacity='';
+  dragData=null;
+  if(ghost?.parentNode) ghost.parentNode.removeChild(ghost);
+  ghost=null;
+  $$('.lane').forEach(l=>l.classList.remove('drop'));
+  $$('.rowHead').forEach(h=>h.classList.remove('drop'));
+  $$('.th .cell').forEach(h=>h.classList.remove('drop'));
 }
-
-function beforeInLane(lane, y){
-  const cards=Array.from(lane.querySelectorAll('.card')).filter(x=>x!==ghost && x!==dragData?.el);
-  for(const c of cards){
-    const r=c.getBoundingClientRect(); if(y < r.top + r.height/2) return c;
-  }
+function beforeInLane(lane,y){
+  const cards=[...lane.querySelectorAll('.card')].filter(x=>x!==ghost && x!==dragData?.el);
+  for(const c of cards){ const r=c.getBoundingClientRect(); if(y < r.top+r.height/2) return c; }
   return null;
 }
 
+/* ===== DnD: card ===== */
+function enableCardDnD(card){
+  card.addEventListener('dragstart',e=>{
+    // データを必ず積む（ブラウザ互換）
+    e.dataTransfer.setData('text/plain', card.dataset.id||'1');
+    e.dataTransfer.effectAllowed='move';
+    dragData={ id:card.dataset.id, fromLane: card.closest('.lane'), order:Number(card.dataset.order||0), el:card };
+    ghost=card.cloneNode(true); ghost.classList.add('ghost');
+    ghost.style.width=card.getBoundingClientRect().width+'px';
+    setTimeout(()=>card.style.opacity='.3',0);
+  });
+  card.addEventListener('dragend', dndCleanup);
+}
+
+/* ===== DnD: lane（枠内） ===== */
 function enableLaneDnD(lane){
   lane.addEventListener('dragover',e=>{
     if(!dragData) return; e.preventDefault(); lane.classList.add('drop');
@@ -322,196 +324,136 @@ function enableLaneDnD(lane){
   lane.addEventListener('drop',async e=>{
     if(!dragData) return; e.preventDefault(); lane.classList.remove('drop');
 
-    // 新しい order を計算
-    const others=Array.from(lane.querySelectorAll('.card')).filter(x=>x!==dragData.el);
+    const others=[...lane.querySelectorAll('.card')].filter(x=>x!==dragData.el);
     let newOrder=10;
     if(others.length){
       const before=beforeInLane(lane,e.clientY);
       if(before){
         const idx=others.indexOf(before);
-        const prev=others[idx-1];
-        const a=prev?Number(prev.dataset.order||0):0;
-        const b=Number(before.dataset.order||0);
-        newOrder=Math.floor((a+b)/2)|| (a+1);
+        const prev=others[idx-1]; const a=prev?+prev.dataset.order||0:0; const b=+before.dataset.order||0;
+        newOrder = Math.floor((a+b)/2) || a+1;
       }else{
-        const last=others[others.length-1]; newOrder=Number(last.dataset.order||0)+10;
+        const last=others[others.length-1]; newOrder=(+last.dataset.order||0)+10;
       }
     }
-    const assignee_id=lane.dataset.assigneeId||null;
-    const date=lane.dataset.date;
+    const assignee_id=lane.dataset.assigneeId||null; const date=lane.dataset.date;
 
     try{
-      Saving.show();
-      await patch({ id: dragData.id, assignee_id, date, order:newOrder });
-      const idx=STATE.items.findIndex(x=>x.id===dragData.id);
-      if(idx>=0){ Object.assign(STATE.items[idx],{assignee_id,date,order:newOrder}); }
+      Saving.show('移動中…');
+      await patch({ id:dragData.id, assignee_id, date, order:newOrder });
+      const i=STATE.items.findIndex(x=>x.id===dragData.id);
+      if(i>=0) Object.assign(STATE.items[i],{assignee_id,date,order:newOrder});
       renderCards(); Saving.ok();
     }catch(err){ console.warn(err); alert('移動に失敗しました'); }
+    finally{ dndCleanup(); }
   });
 }
 
-/* ===== 枠外ドロップ：日付ヘッダ／担当者見出し ===== */
+/* ===== DnD: ヘッダ/担当者（枠外） ===== */
 function enableHeaderDrop(cell){
   cell.addEventListener('dragover',e=>{ if(!dragData) return; e.preventDefault(); cell.classList.add('drop'); });
   cell.addEventListener('dragleave',()=>cell.classList.remove('drop'));
   cell.addEventListener('drop',async e=>{
     if(!dragData) return; e.preventDefault(); cell.classList.remove('drop');
-    const newDate=cell.dataset.date;
-    const from=dragData.fromLane; const assignee_id=from?.dataset.assigneeId||null;
-
-    // 末尾 order
+    const newDate=cell.dataset.date; const from=dragData.fromLane; const assignee_id=from?.dataset.assigneeId||null;
     const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(assignee_id||'')}"][data-date="${newDate}"]`);
-    let newOrder=10;
-    if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=Number(last.dataset.order||0)+10; }
-
+    let newOrder=10; if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=(+last.dataset.order||0)+10; }
     try{
-      Saving.show();
+      Saving.show('移動中…');
       await patch({ id:dragData.id, date:newDate, order:newOrder });
-      const idx=STATE.items.findIndex(x=>x.id===dragData.id);
-      if(idx>=0){ Object.assign(STATE.items[idx],{date:newDate,order:newOrder}); }
+      const i=STATE.items.findIndex(x=>x.id===dragData.id);
+      if(i>=0) Object.assign(STATE.items[i],{date:newDate,order:newOrder});
       renderCards(); Saving.ok();
     }catch(err){ console.warn(err); alert('日付変更に失敗しました'); }
+    finally{ dndCleanup(); }
   });
 }
-
 function enableRowHeadDrop(head){
   head.addEventListener('dragover',e=>{ if(!dragData) return; e.preventDefault(); head.classList.add('drop'); });
   head.addEventListener('dragleave',()=>head.classList.remove('drop'));
   head.addEventListener('drop',async e=>{
     if(!dragData) return; e.preventDefault(); head.classList.remove('drop');
-    const newAssignee=head.dataset.assigneeId||null;
+    const newUser=head.dataset.assigneeId||null;
     const from=dragData.fromLane; const date=from?.dataset.date;
-
-    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(newAssignee||'')}"][data-date="${date}"]`);
-    let newOrder=10; if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=Number(last.dataset.order||0)+10; }
-
+    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(newUser||'')}"][data-date="${date}"]`);
+    let newOrder=10; if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=(+last.dataset.order||0)+10; }
     try{
-      Saving.show();
-      await patch({ id:dragData.id, assignee_id:newAssignee, order:newOrder });
-      const idx=STATE.items.findIndex(x=>x.id===dragData.id);
-      if(idx>=0){ Object.assign(STATE.items[idx],{assignee_id:newAssignee,order:newOrder}); }
+      Saving.show('移動中…');
+      await patch({ id:dragData.id, assignee_id:newUser, order:newOrder });
+      const i=STATE.items.findIndex(x=>x.id===dragData.id);
+      if(i>=0) Object.assign(STATE.items[i],{assignee_id:newUser,order:newOrder});
       renderCards(); Saving.ok();
     }catch(err){ console.warn(err); alert('担当者変更に失敗しました'); }
+    finally{ dndCleanup(); }
   });
 }
 
-/* ===== 担当者行の並べ替え（ハンドルでドラッグ） ===== */
-function userOrderLoad(){
-  try{ return JSON.parse(localStorage.getItem('userOrder')||'[]'); }catch(_){ return []; }
-}
+/* ===== 担当者行の並べ替え（ローカル保存） ===== */
+function userOrderLoad(){ try{return JSON.parse(localStorage.getItem('userOrder')||'[]');}catch(_){return[];} }
 function userOrderSave(list){ localStorage.setItem('userOrder', JSON.stringify(list)); }
 function applyUserOrderToState(){
-  const order=userOrderLoad();
-  if(!order.length) return;
-  STATE.users.sort((a,b)=>{
-    const ia=order.indexOf(a.id||''); const ib=order.indexOf(b.id||'');
-    return (ia<0)-(ib<0) || ia-ib;
-  });
+  const order=userOrderLoad(); if(!order.length) return;
+  STATE.users.sort((a,b)=>{ const ia=order.indexOf(a.id||''); const ib=order.indexOf(b.id||''); return (ia<0)-(ib<0) || ia-ib; });
 }
 function enableRowReorder(rowHead){
-  // ドラッグ元
   rowHead.addEventListener('dragstart',e=>{
     if(!e.target.classList.contains('handle')){ e.preventDefault(); return; }
+    e.dataTransfer.setData('text/plain','row'); e.dataTransfer.effectAllowed='move';
     rowHead.classList.add('dragging');
-    e.dataTransfer.effectAllowed='move';
   });
-  rowHead.addEventListener('dragend',()=>{
-    rowHead.classList.remove('dragging');
-    $$('.rowHead').forEach(h=>h.classList.remove('drop'));
-  });
+  rowHead.addEventListener('dragend',()=>{ rowHead.classList.remove('dragging'); $$('.rowHead').forEach(h=>h.classList.remove('drop')); });
 
-  // 他の見出しへ
   $$('#body .rowHead').forEach(h=>{
     if(h===rowHead) return;
-    h.addEventListener('dragover',ev=>{
-      const dragging=$('.rowHead.dragging'); if(!dragging) return;
-      ev.preventDefault(); h.classList.add('drop');
-    });
+    h.addEventListener('dragover',ev=>{ if(!$('.rowHead.dragging')) return; ev.preventDefault(); h.classList.add('drop'); });
     h.addEventListener('dragleave',()=>h.classList.remove('drop'));
     h.addEventListener('drop',ev=>{
-      const dragging=$('.rowHead.dragging'); if(!dragging) return;
-      ev.preventDefault(); h.classList.remove('drop');
-      // 行（見出し + Nレーン）をまとめて入れ替え
+      const dragging=$('.rowHead.dragging'); if(!dragging) return; ev.preventDefault(); h.classList.remove('drop');
       const cols=STATE.dates.length; const body=$('#body');
-      const idxFrom=Array.from(body.children).indexOf(dragging);
-      const idxTo=Array.from(body.children).indexOf(h);
+      const idxFrom=[...body.children].indexOf(dragging);
+      const idxTo=[...body.children].indexOf(h);
       const blockFrom=[dragging, ...Array.from({length:cols},(_,i)=>body.children[idxFrom+1+i])];
-      const ref=h; // 先頭の見出しの前に差し込む
-      blockFrom.forEach(el=> body.insertBefore(el, ref));
-
-      // 並び順を保存（localStorage）
-      const order=Array.from($('#body').querySelectorAll('.rowHead')).map(x=>x.dataset.assigneeId||'');
-      userOrderSave(order);
+      const ref=h; blockFrom.forEach(el=> body.insertBefore(el, ref));
+      const order=[...$('#body').querySelectorAll('.rowHead')].map(x=>x.dataset.assigneeId||''); userOrderSave(order);
     });
   });
 }
 
-/* ===== 編集モーダル ===== */
+/* ===== モーダル ===== */
 let modalItemId=null;
 function openModal(id){
-  modalItemId=id;
-  const it=STATE.items.find(x=>x.id===id); if(!it) return;
-
-  // 担当セレクト
-  const sel=$('#m_user'); sel.innerHTML='';
-  for(const u of STATE.users){
-    const opt=document.createElement('option'); opt.value=u.id||''; opt.textContent=u.name||'(無名)'; sel.appendChild(opt);
-  }
-  $('#m_date').value   = it.date || todayStr();
-  $('#m_user').value   = it.assignee_id || '';
-  $('#m_plan').value   = it.plan ?? '';
-  $('#m_today').value  = it.today_plan ?? '';
-  $('#m_actual').value = it.actual ?? '';
-  $('#m_remain').value = it.remain ?? '';
-
+  modalItemId=id; const it=STATE.items.find(x=>x.id===id); if(!it) return;
+  const sel=$('#m_user'); sel.innerHTML=''; for(const u of STATE.users){ const o=document.createElement('option'); o.value=u.id||''; o.textContent=u.name||'(無名)'; sel.appendChild(o); }
+  $('#m_date').value=it.date||todayStr(); $('#m_user').value=it.assignee_id||'';
+  $('#m_plan').value=it.plan??''; $('#m_today').value=it.today_plan??''; $('#m_actual').value=it.actual??''; $('#m_remain').value=it.remain??'';
   $('#modal').classList.add('show'); $('#modal').setAttribute('aria-hidden','false');
 }
-function closeModal(){
-  modalItemId=null;
-  $('#modal').classList.remove('show'); $('#modal').setAttribute('aria-hidden','true');
-}
+function closeModal(){ modalItemId=null; $('#modal').classList.remove('show'); $('#modal').setAttribute('aria-hidden','true'); }
 $('#m_cancel').addEventListener('click', closeModal);
 $('#modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
 
 $('#m_save').addEventListener('click', async ()=>{
-  if(!modalItemId) return;
-  const it=STATE.items.find(x=>x.id===modalItemId); if(!it) return;
-
+  if(!modalItemId) return; const it=STATE.items.find(x=>x.id===modalItemId); if(!it) return;
   const payload={ id:it.id };
   const newDate=$('#m_date').value||it.date;
   const newUser=$('#m_user').value||null;
-  const newPlan   = num($('#m_plan').value);
-  const newToday  = num($('#m_today').value);
-  const newActual = num($('#m_actual').value);
-  const newRemain = num($('#m_remain').value);
-
+  const newPlan=num($('#m_plan').value); const newToday=num($('#m_today').value); const newActual=num($('#m_actual').value); const newRemain=num($('#m_remain').value);
   if(newDate!==it.date) payload.date=newDate;
   if(newUser!==it.assignee_id) payload.assignee_id=newUser;
-  payload.plan = newPlan;
-  payload.today_plan = newToday;
-  payload.actual = newActual;
-  payload.remain = newRemain;
+  payload.plan=newPlan; payload.today_plan=newToday; payload.actual=newActual; payload.remain=newRemain;
 
-  // 並び末尾へ（行や列が変わる場合）
   if(payload.date || payload.assignee_id){
-    const date=payload.date||it.date, user=payload.assignee_id||it.assignee_id;
-    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(user||'')}"][data-date="${date}"]`);
-    let newOrder=10; if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) newOrder=Number(last.dataset.order||0)+10; }
-    payload.order=newOrder;
+    const lane=document.querySelector(`.lane[data-assignee-id="${CSS.escape(payload.assignee_id||it.assignee_id||'')}"][data-date="${payload.date||it.date}"]`);
+    let order=10; if(lane){ const last=[...lane.querySelectorAll('.card')].pop(); if(last) order=(+last.dataset.order||0)+10; }
+    payload.order=order;
   }
 
   try{
-    Saving.show();
+    Saving.show('保存中…');
     await patch(payload);
-    Object.assign(it,{
-      date:newDate, assignee_id:newUser,
-      plan:newPlan, today_plan:newToday, actual:newActual, remain:newRemain,
-      order: payload.order ?? it.order
-    });
-    closeModal();
-    renderCards();
-    Saving.ok();
-  }catch(err){ console.warn(err); alert('保存に失敗しました'); }
+    Object.assign(it,{ date:newDate, assignee_id:newUser, plan:newPlan, today_plan:newToday, actual:newActual, remain:newRemain, order: payload.order ?? it.order });
+    closeModal(); renderCards(); Saving.ok();
+  }catch(err){ console.warn(err); alert('保存に失敗しました'); Saving.hide(); }
 });
 
 /* ===== load & UI ===== */
@@ -519,20 +461,20 @@ function setFromQuery(){
   const p=new URLSearchParams(location.search);
   const s=p.get('start')||todayStr(); const d=Number(p.get('days')||14);
   $('#start').value=s; $('#days').value=d;
-  const saved=Number(localStorage.getItem('colw')||'0'); setColWidth(saved>0?saved:280);
+  setColWidth(Number(localStorage.getItem('colw')||280));
 }
 async function reload(){
   const s=$('#start').value; const d=Number($('#days').value||14);
   history.replaceState(null,'',`?start=${s}&days=${d}`);
   try{
-    Saving.show();
-    const [grid, usersResp] = await Promise.all([ getGrid(s,d), getUsers() ]);
-    const users = (usersResp.users && usersResp.users.length) ? usersResp.users : (grid.users||[]);
+    Saving.show('読込中…');
+    const [grid, usersResp]=await Promise.all([ getGrid(s,d), getUsers() ]);
+    const users=(usersResp.users && usersResp.users.length)?usersResp.users:(grid.users||[]);
     STATE={ dates:grid.dates||[], users:users||[], items:grid.items||[] };
-    // ユーザー並び順（ローカル）適用
     applyUserOrderToState();
     buildHeader(); buildBody(); renderCards();
-  }finally{ Saving.hide(); }
+  }catch(e){ console.warn(e); alert('読み込みに失敗しました'); }
+  finally{ Saving.hide(); }
 }
 function bindUI(){
   $('#prev').addEventListener('click', ()=>{ const dt=new Date($('#start').value); dt.setDate(dt.getDate()-Number($('#days').value||14)); $('#start').value=dt.toISOString().slice(0,10); reload(); });
@@ -542,9 +484,13 @@ function bindUI(){
   $('#days').addEventListener('change', reload);
   $('#compact').addEventListener('change', e=> document.body.classList.toggle('compact', e.target.checked));
   $('#colw').addEventListener('change', e=> setColWidth(Number(e.target.value||280)));
+  window.addEventListener('resize', applyHeadHeight);
 }
 
-(async function init(){ setFromQuery(); bindUI(); await reload(); })();
+/* init */
+(function init(){
+  applyHeadHeight(); setFromQuery(); bindUI(); reload();
+})();
 </script>
 </body>
 </html>
