@@ -26,14 +26,23 @@ button{cursor:pointer}
 /* ボード */
 #board{overflow:auto}
 .grid{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 56px)}
-.th{display:grid;grid-template-columns:220px repeat(var(--cols), var(--colw));border-bottom:1px solid var(--bd)}
-.th .cell{padding:.5rem;border-right:1px solid var(--bd);background:#fff;position:sticky;top:56px;z-index:3}
-.th .cell.head{background:#fafafa;font-weight:600}
+
+/* 日付ヘッダ */
+.th{
+  display:grid;
+  grid-template-columns:220px repeat(var(--cols), var(--colw));
+  border-bottom:1px solid var(--bd);
+  position:sticky; top:56px; z-index:4;     /* ← ヘッダを固定 */
+  background:#fff;
+}
+.th .cell{padding:.5rem;border-right:1px solid var(--bd);background:#fff}
+.th .cell.head{font-weight:600}
 .th .cell.sun{color:#ef4444}
 .th .cell.sat{background:#f0f7ff}
 .th .cell.hol{color:#fff;background:#ef4444;border-color:#ef4444}
 .th .cell.drop{outline:2px dashed #60a5fa; outline-offset:-2px}
 
+/* 本体 */
 .body{display:grid;grid-template-columns:220px repeat(var(--cols), var(--colw))}
 
 /* 担当者見出し（左） */
@@ -56,7 +65,7 @@ button{cursor:pointer}
 .lane.drop{box-shadow:inset 0 0 0 2px #60a5fa}
 
 /* カード */
-.card{margin:8px;padding:10px;border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);cursor:grab;position:relative}
+.card{margin:8px;padding:10px 34px 10px 10px; /* 右に✎の余白 */ border:1px solid var(--bd);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04);cursor:grab;position:relative}
 .card:active{cursor:grabbing}
 .tt{font-weight:600;font-size:13px;margin-bottom:4px}
 .meta{display:flex;gap:6px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:4px}
@@ -65,12 +74,13 @@ button{cursor:pointer}
 .kv .label{color:var(--muted)}
 .kv .num{min-width:12px}
 .editBtn{
-  position:absolute;top:6px;left:6px;border:1px solid var(--bd);border-radius:6px;background:#fff;height:24px;padding:0 6px;cursor:pointer
+  position:absolute;top:6px;right:6px; /* ← 右上配置で本文に被らない */ 
+  border:1px solid var(--bd);border-radius:6px;background:#fff;height:24px;padding:0 6px;cursor:pointer
 }
 .ghost{border:2px dashed #a3a3a3;background:#fafafa;opacity:.8}
 
 /* コンパクト */
-.compact .card{margin:4px;padding:6px;border-radius:6px}
+.compact .card{margin:4px;padding:6px 30px 6px 6px;border-radius:6px}
 .compact .lane{min-height:100px}
 
 /* モーダル */
@@ -136,6 +146,8 @@ button{cursor:pointer}
       <input id="m_today" type="number" step="0.01" inputmode="decimal">
       <label for="m_actual">実績</label>
       <input id="m_actual" type="number" step="0.01" inputmode="decimal">
+      <label for="m_remain">残時間</label>
+      <input id="m_remain" type="number" step="0.01" inputmode="decimal">
     </div>
     <div class="foot">
       <button id="m_cancel">キャンセル</button>
@@ -199,8 +211,8 @@ function buildBody(){
   const body=$('#body'); body.style.setProperty('--cols', STATE.dates.length); body.innerHTML='';
 
   for(const u of STATE.users){
-    const rh=document.createElement('div'); rh.className='rowHead'; rh.dataset.assigneeId=u.id||''; rh.innerHTML=`<span class="handle">≡</span> <span>${u.name||'(無名)'}</span>`;
-    enableRowHeadDrop(rh); body.appendChild(rh);
+    const rh=document.createElement('div'); rh.className='rowHead'; rh.dataset.assigneeId=u.id||''; rh.innerHTML=`<span class="handle" draggable="true" title="並べ替え">≡</span> <span>${u.name||'(無名)'}</span>`;
+    enableRowHeadDrop(rh); enableRowReorder(rh); body.appendChild(rh);
 
     for(const d of STATE.dates){
       const lane=document.createElement('div'); lane.className='lane';
@@ -259,6 +271,7 @@ function cardEl(item){
       <span class="kv"><span class="label">計画</span>：<span class="num">${numfmt(item.plan)}</span></span>
       <span class="kv"><span class="label">当日予定</span>：<span class="num">${numfmt(item.today_plan)}</span></span>
       <span class="kv"><span class="label">実績</span>：<span class="num">${numfmt(item.actual)}</span></span>
+      <span class="kv"><span class="label">残時間</span>：<span class="num">${numfmt(item.remain)}</span></span>
     </div>
   `;
 
@@ -382,6 +395,57 @@ function enableRowHeadDrop(head){
   });
 }
 
+/* ===== 担当者行の並べ替え（ハンドルでドラッグ） ===== */
+function userOrderLoad(){
+  try{ return JSON.parse(localStorage.getItem('userOrder')||'[]'); }catch(_){ return []; }
+}
+function userOrderSave(list){ localStorage.setItem('userOrder', JSON.stringify(list)); }
+function applyUserOrderToState(){
+  const order=userOrderLoad();
+  if(!order.length) return;
+  STATE.users.sort((a,b)=>{
+    const ia=order.indexOf(a.id||''); const ib=order.indexOf(b.id||'');
+    return (ia<0)-(ib<0) || ia-ib;
+  });
+}
+function enableRowReorder(rowHead){
+  // ドラッグ元
+  rowHead.addEventListener('dragstart',e=>{
+    if(!e.target.classList.contains('handle')){ e.preventDefault(); return; }
+    rowHead.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+  });
+  rowHead.addEventListener('dragend',()=>{
+    rowHead.classList.remove('dragging');
+    $$('.rowHead').forEach(h=>h.classList.remove('drop'));
+  });
+
+  // 他の見出しへ
+  $$('#body .rowHead').forEach(h=>{
+    if(h===rowHead) return;
+    h.addEventListener('dragover',ev=>{
+      const dragging=$('.rowHead.dragging'); if(!dragging) return;
+      ev.preventDefault(); h.classList.add('drop');
+    });
+    h.addEventListener('dragleave',()=>h.classList.remove('drop'));
+    h.addEventListener('drop',ev=>{
+      const dragging=$('.rowHead.dragging'); if(!dragging) return;
+      ev.preventDefault(); h.classList.remove('drop');
+      // 行（見出し + Nレーン）をまとめて入れ替え
+      const cols=STATE.dates.length; const body=$('#body');
+      const idxFrom=Array.from(body.children).indexOf(dragging);
+      const idxTo=Array.from(body.children).indexOf(h);
+      const blockFrom=[dragging, ...Array.from({length:cols},(_,i)=>body.children[idxFrom+1+i])];
+      const ref=h; // 先頭の見出しの前に差し込む
+      blockFrom.forEach(el=> body.insertBefore(el, ref));
+
+      // 並び順を保存（localStorage）
+      const order=Array.from($('#body').querySelectorAll('.rowHead')).map(x=>x.dataset.assigneeId||'');
+      userOrderSave(order);
+    });
+  });
+}
+
 /* ===== 編集モーダル ===== */
 let modalItemId=null;
 function openModal(id){
@@ -393,11 +457,12 @@ function openModal(id){
   for(const u of STATE.users){
     const opt=document.createElement('option'); opt.value=u.id||''; opt.textContent=u.name||'(無名)'; sel.appendChild(opt);
   }
-  $('#m_date').value = it.date || todayStr();
-  $('#m_user').value = it.assignee_id || '';
-  $('#m_plan').value = it.plan ?? '';
-  $('#m_today').value = it.today_plan ?? '';
+  $('#m_date').value   = it.date || todayStr();
+  $('#m_user').value   = it.assignee_id || '';
+  $('#m_plan').value   = it.plan ?? '';
+  $('#m_today').value  = it.today_plan ?? '';
   $('#m_actual').value = it.actual ?? '';
+  $('#m_remain').value = it.remain ?? '';
 
   $('#modal').classList.add('show'); $('#modal').setAttribute('aria-hidden','false');
 }
@@ -415,15 +480,17 @@ $('#m_save').addEventListener('click', async ()=>{
   const payload={ id:it.id };
   const newDate=$('#m_date').value||it.date;
   const newUser=$('#m_user').value||null;
-  const newPlan=num($('#m_plan').value);
-  const newToday=num($('#m_today').value);
-  const newActual=num($('#m_actual').value);
+  const newPlan   = num($('#m_plan').value);
+  const newToday  = num($('#m_today').value);
+  const newActual = num($('#m_actual').value);
+  const newRemain = num($('#m_remain').value);
 
   if(newDate!==it.date) payload.date=newDate;
   if(newUser!==it.assignee_id) payload.assignee_id=newUser;
   payload.plan = newPlan;
   payload.today_plan = newToday;
   payload.actual = newActual;
+  payload.remain = newRemain;
 
   // 並び末尾へ（行や列が変わる場合）
   if(payload.date || payload.assignee_id){
@@ -438,7 +505,7 @@ $('#m_save').addEventListener('click', async ()=>{
     await patch(payload);
     Object.assign(it,{
       date:newDate, assignee_id:newUser,
-      plan:newPlan, today_plan:newToday, actual:newActual,
+      plan:newPlan, today_plan:newToday, actual:newActual, remain:newRemain,
       order: payload.order ?? it.order
     });
     closeModal();
@@ -462,6 +529,8 @@ async function reload(){
     const [grid, usersResp] = await Promise.all([ getGrid(s,d), getUsers() ]);
     const users = (usersResp.users && usersResp.users.length) ? usersResp.users : (grid.users||[]);
     STATE={ dates:grid.dates||[], users:users||[], items:grid.items||[] };
+    // ユーザー並び順（ローカル）適用
+    applyUserOrderToState();
     buildHeader(); buildBody(); renderCards();
   }finally{ Saving.hide(); }
 }
