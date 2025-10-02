@@ -18,7 +18,8 @@
 
   /* ツールバー（横スクロールしても固定） */
   .toolbar{
-    position: sticky; top:0; z-index:60;
+    position: fixed; left:0; right:0;
+    top:0; z-index:60;
     display:flex; gap:8px; align-items:center;
     padding:10px 12px; background:#fff; border-bottom:1px solid var(--bd);
     height: var(--toolbarH);
@@ -28,7 +29,10 @@
   }
   .toolbar .grow{flex:1}
 
-  .wrap{padding:8px}
+  .wrap{
+    padding:8px;
+    position: absolute; top: calc(var(--toolbarH) + 1px); bottom:0; left:0; right:0;
+  }
 
   /* 日付ヘッダ（固定） */
   .dates{
