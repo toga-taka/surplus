@@ -231,6 +231,12 @@
   </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const days = parseInt(el('#days').value,10)||14;
+    const oneboxwidth = document.querySelector('.lane').clientWidth + 8; // マス幅 + gap
+    document.querySelector('.wrap').style.width = days * oneboxwidth + 220 + 'px'; // マス幅×日数 + 左列幅
+
+  });
 /* ====== ユーティリティ ====== */
 const el = s=>document.querySelector(s);
 const els = s=>Array.from(document.querySelectorAll(s));
