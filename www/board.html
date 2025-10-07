@@ -361,7 +361,7 @@ function makeCard(it){
   const title = it.task || it.content || '(無題)';
   const customer = it.customer || '';
   const plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining), promised_date=it.promised_date ? it.promised_date : '';
-  if(promised_date !== ''){
+  if(promised_date){
     const pd = new Date(promised_date);
     //年月日形式に変換
     promised_date = `${pd.getFullYear()}年${String(pd.getMonth()+1).padStart(2,'0')}月${String(pd.getDate()).padStart(2,'0')}日`;
