@@ -360,7 +360,7 @@ function makeCard(it){
 
   const title = it.task || it.content || '(無題)';
   const customer = it.customer || '';
-  const plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining), promised_date=it.promised_date ? it.promised_date : '';
+  let plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining), promised_date=it.promised_date ? it.promised_date : '';
   if(promised_date){
     // @ を削除
     const cleanDate = promised_date.replace(/^@/, '').trim();
