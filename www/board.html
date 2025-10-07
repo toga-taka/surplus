@@ -100,6 +100,9 @@
     position:absolute; right:6px; top:6px; border:1px solid var(--bd); background:#fff; border-radius:8px;
     padding:2px 8px; font-size:12px; cursor:pointer;
   }
+  .card .notionLink{
+    position:absolute; right:6px; top:32px; font-size:12px; text-decoration:none; color:#2563eb;
+  }
   .title{ font-weight:600; margin-bottom:4px; padding-right:48px; }
   .meta{ color:var(--muted); font-size:12px; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .pills{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -368,13 +371,15 @@ function makeCard(it){
     const pd = new Date(cleanDate);
     // 年月日形式に変換（NaNチェックも入れとく）
     if (!isNaN(pd)) {
-      promised_date = `${pd.getFullYear()}年${String(pd.getMonth() + 1).padStart(2, '0')}月${String(pd.getDate()).padStart(2, '0')}日`;
+      promised_date = `${String(pd.getMonth() + 1).padStart(2, '0')}月${String(pd.getDate()).padStart(2, '0')}日`;
     }
   }
+  let notionLink = "http://www.notion.so/" + (it.notion_id ? it.notion_id.replace(/-/g, '') : '');
 
   card.innerHTML=`
     <div class="handle" title="ドラッグ">≡</div>
     <button class="editBtn" type="button">編集</button>
+    <a href="${notionLink}" target="_blank" class="notionLink">▶︎</a>
     <div class="title">${title}</div>
     <div class="meta">${customer}</div>
     <div class="pills">

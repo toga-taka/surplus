@@ -93,6 +93,7 @@ foreach(($j['results']??[]) as $pg){
   $kActual   = pick_key($p, ['実績'],   ['実績','actual']);
   $kRemain   = pick_key($p, ['残時間'], ['残','remain']);
   $kpromiseddate = pick_key($p, ['顧客と約束した納期'], ['約束納期','約束日','promised_date']);
+  
 
   // 日付必須（範囲外は捨てる）
   $date = ($kDate && isset($p[$kDate])) ? val($p[$kDate]) : null;
@@ -117,6 +118,7 @@ foreach(($j['results']??[]) as $pg){
     if(($p[$kTask]['type']??'')==='relation') $task = relation_titles($p[$kTask],$token);
     else $task = val($p[$kTask]);
   }
+
 
   $items[] = [
     'id'          => $pg['id'],
