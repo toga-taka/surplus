@@ -376,6 +376,7 @@ function makeCard(it){
   }
   let notionLink = "http://www.notion.so/native/" + (it.id ? it.id.replace(/-/g, '') : '');
 
+
   card.innerHTML=`
     <div class="handle" title="ドラッグ">≡</div>
     <button class="editBtn" type="button">編集</button>
@@ -387,7 +388,7 @@ function makeCard(it){
       <span class="pill today">予:${today}</span>
       <span class="pill actual">実:${actual}</span>
       <span class="pill remain">残:${remain}</span>
-      <span class="pill promised_date">約:${promised_date}</span>
+      ${promised_date ? `<span class="pill promised_date">約:${promised_date}</span>` : ''}
     </div>
   `;
   card.querySelector('.editBtn').addEventListener('click', e=>{
