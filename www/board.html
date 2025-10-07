@@ -374,7 +374,7 @@ function makeCard(it){
       promised_date = `${String(pd.getMonth() + 1).padStart(2, '0')}月${String(pd.getDate()).padStart(2, '0')}日`;
     }
   }
-  let notionLink = "http://www.notion.so/" + (it.notion_id ? it.notion_id.replace(/-/g, '') : '');
+  let notionLink = "http://www.notion.so/native/" + (it.id ? it.id.replace(/-/g, '') : '');
 
   card.innerHTML=`
     <div class="handle" title="ドラッグ">≡</div>
