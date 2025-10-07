@@ -111,6 +111,7 @@
   .pill.actual{ background:#eef2ff; border-color:#c7d2fe; }
   .pill.remain{ background:#fef2f2; border-color:#fecaca; }
   .pill.contract{ background:#ecfeff; border-color:#a5f3fc; } /* 契約納期用（将来の拡張向け） */
+  .pill.promised_date{ background:#ecfeff; border-color:#a5f3fc; } /* 契約納期用 */
 
   .card.dragging{ opacity:.5 }
   .placeholder{ height:56px; margin-top:8px; border:2px dashed #93c5fd; border-radius:10px; background:#eff6ff; }
@@ -209,6 +210,10 @@
         <div>
           <label for="f_remain">残時間</label>
           <input type="number" step="0.25" id="f_remain">
+        </div>
+        <div>
+          <label for="f_promised_date">顧客と約束した納期</label>
+          <input type="date" id="f_promised_date">
         </div>
       </div>
       <div class="actions">
@@ -355,7 +360,7 @@ function makeCard(it){
 
   const title = it.task || it.content || '(無題)';
   const customer = it.customer || '';
-  const plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining);
+  const plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining), promised_date=it.promised_date ? it.promised_date : '';
 
   card.innerHTML=`
     <div class="handle" title="ドラッグ">≡</div>
@@ -367,6 +372,7 @@ function makeCard(it){
       <span class="pill today">予:${today}</span>
       <span class="pill actual">実:${actual}</span>
       <span class="pill remain">残:${remain}</span>
+      <span class="pill promised_date">約:${promised_date}</span>
     </div>
   `;
   card.querySelector('.editBtn').addEventListener('click', e=>{
@@ -497,6 +503,7 @@ function openEditor(card){
   el('#f_today').value  = it.today_plan??'';
   el('#f_actual').value = it.actual??'';
   el('#f_remain').value = it.remaining??'';
+  el('#f_promised_date').value = it.promised_date || '';
   el('#modal').classList.add('show');
 }
 function closeEditor(){ el('#modal').classList.remove('show'); editingId=null; }
@@ -512,7 +519,8 @@ el('#save').addEventListener('click', async ()=>{
     plan: numOrNull(el('#f_plan').value),
     today_plan: numOrNull(el('#f_today').value),
     actual: numOrNull(el('#f_actual').value),
-    remaining: numOrNull(el('#f_remain').value)
+    remaining: numOrNull(el('#f_remain').value),
+    promised_date: valOrEmpty(el('#f_promised_date').value)
   };
   await patchCard(payload);
   // ローカル反映
@@ -522,6 +530,7 @@ el('#save').addEventListener('click', async ()=>{
   if(payload.today_plan!==undefined) it.today_plan=payload.today_plan;
   if(payload.actual!==undefined) it.actual=payload.actual;
   if(payload.remaining!==undefined) it.remaining=payload.remaining;
+  if(payload.promised_date!==undefined) it.promised_date=payload.promised_date;
   placeCards(); closeEditor(); showToast('更新しました');
 });
 function valOrEmpty(v){ return (v===''?undefined:v); }

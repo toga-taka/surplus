@@ -43,6 +43,7 @@ $plan         = isset($js['plan']) ? $js['plan'] : null;
 $today_plan   = isset($js['today_plan']) ? $js['today_plan'] : null;
 $actual       = isset($js['actual']) ? $js['actual'] : null;
 $remain       = isset($js['remain']) ? $js['remain'] : null;
+$promised_date = isset($js['promised_date']) ? $js['promised_date'] : null;
 
 if(!$id){ echo json_encode(['status'=>400,'error'=>'id required']); exit; }
 
@@ -60,6 +61,7 @@ $kPlan     = pick_key($props, ['計画']);
 $kToday    = pick_key($props, ['当日予定','今日予定','today']);
 $kActual   = pick_key($props, ['実績']);
 $kRemain   = pick_key($props, ['残時間','残']);
+$kPromisedDate = pick_key($props, ['顧客と約束した納期','約束納期','約束日','promised_date']);
 
 /* ---- build properties ---- */
 $update = ['properties'=>[]];
@@ -83,6 +85,9 @@ if($actual!==null && $kActual){
 }
 if($remain!==null && $kRemain){
   $update['properties'][$kRemain] = ['number'=>$remain];
+}
+if($promised_date!==null && $kPromisedDate){
+  $update['properties'][$kPromisedDate] = ['date'=>['start'=>$promised_date]];
 }
 
 if(!$update['properties']){ echo json_encode(['status'=>200,'note'=>'no-op']); exit; }
