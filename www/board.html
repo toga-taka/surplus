@@ -361,7 +361,7 @@ function makeCard(it){
   card.dataset.assignee=it.assignee_id;
   card.dataset.date=it.date;
 
-  const title = it.task || it.content || '(無題)';
+  const title = it.title || '(無題)';
   const customer = it.customer || '';
   let plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining), promised_date=it.promised_date ? it.promised_date : '';
   if(promised_date){
@@ -375,6 +375,18 @@ function makeCard(it){
     }
   }
   let notionLink = "http://www.notion.so/native/" + (it.id ? it.id.replace(/-/g, '') : '');
+  let notionLink_task = "";
+  if(it.task_page_id){
+    notionLink_task = "http://www.notion.so/native/" + (it.task_page_id ? it.task_page_id.replace(/-/g, '') : '');
+  }
+  let task = "???";
+  let task_title = it.task || '';
+  if(notionLink_task){
+    task = '<a href="' + notionLink_task + '" target="_blank">' + task_title +'</a>';
+  }else{
+    task = task_title;
+  }
+
 
 
   card.innerHTML=`
@@ -383,6 +395,8 @@ function makeCard(it){
     <a href="${notionLink}" target="_blank" class="notionLink">▶︎</a>
     <div class="title">${title}</div>
     <div class="meta">${customer}</div>
+    <div class="meta" style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${it.keisananken_title || ''}</div>
+   <div class="meta" style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${task}</div>
     <div class="pills">
       <span class="pill plan">計:${plan}</span>
       <span class="pill today">予:${today}</span>

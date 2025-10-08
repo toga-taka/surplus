@@ -133,6 +133,11 @@ foreach(($j['results']??[]) as $pg){
     'actual'      => ($kActual && isset($p[$kActual])) ? floatval(val($p[$kActual])) : null,
     'remain'      => ($kRemain && isset($p[$kRemain])) ? floatval(val($p[$kRemain])) : null,
     'promised_date' => ($kpromiseddate && isset($p[$kpromiseddate])) ? val($p[$kpromiseddate]) : null,
+    'pgall' => json_encode($pg), // for debug
+    'title' => $p["内容"]["title"][0]["plain_text"]??'', // for debug
+    'keisananken_title' => $p["計算案件"]["formula"]["string"]??'', // for debug  
+    'task_page_id' => $p['タスク']['relation'][0]['id']??'', // for debug
+    
   ];
 }
 
