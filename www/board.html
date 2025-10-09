@@ -429,6 +429,7 @@ function placeCards(){
     if(!lane) continue;
     lane.appendChild(makeCard(it));
   }
+  document.querySelector('.wrap').style.height = el('#rows').clientHeight + 16 + 'px';
 
   enableLaneDnD();
   recalcSums();
