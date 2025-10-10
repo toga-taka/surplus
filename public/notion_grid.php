@@ -69,7 +69,15 @@ for($i=0;$i<$days;$i++){
   $dt->modify('+1 day');
 }
 
-$payload=json_encode(['page_size'=>100], JSON_UNESCAPED_UNICODE);
+$payload=json_encode([
+    'filter' => [
+        'property' => '日付',
+        'date' => [
+            'on_or_after' => $start,
+        ],
+      ],
+  'page_size'=>100
+], JSON_UNESCAPED_UNICODE);
 list($code,$body)=notion_req("https://api.notion.com/v1/databases/$db/query",$token,$payload);
 if($code!==200){ echo json_encode(['status'=>$code,'error'=>'notion query failed']); exit; }
 $j=json_decode($body,true);
@@ -97,9 +105,9 @@ foreach(($j['results']??[]) as $pg){
 
   // 日付必須（範囲外は捨てる）
   $date = ($kDate && isset($p[$kDate])) ? val($p[$kDate]) : null;
-  if(!$date) continue;
+//  if(!$date) continue;
   $end=(new DateTime($start))->modify("+$days day")->format('Y-m-d');
-  if($date < $start || $date >= $end) continue;
+//  if($date < $start || $date >= $end) continue;
 
   // 担当者（people）を取り出し、ユーザ一覧を作る
   $assignee_id=null; $assignee_name=null;
@@ -137,7 +145,7 @@ foreach(($j['results']??[]) as $pg){
     'title' => $p["内容"]["title"][0]["plain_text"]??'', // for debug
     'keisananken_title' => $p["計算案件"]["formula"]["string"]??'', // for debug  
     'task_page_id' => $p['タスク']['relation'][0]['id']??'', // for debug
-    
+
   ];
 }
 
