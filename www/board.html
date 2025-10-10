@@ -18,7 +18,8 @@
 
   /* ツールバー（横スクロールしても固定） */
   .toolbar{
-    position: sticky; top:0; z-index:60;
+    position: fixed; left:0; right:0;
+    top:0; z-index:60;
     display:flex; gap:8px; align-items:center;
     padding:10px 12px; background:#fff; border-bottom:1px solid var(--bd);
     height: var(--toolbarH);
@@ -28,7 +29,11 @@
   }
   .toolbar .grow{flex:1}
 
-  .wrap{padding:8px}
+  .wrap{
+    padding:8px;
+    position: absolute; top: calc(var(--toolbarH) + 1px); bottom:0; left:0; right:0;
+    width: calc(var(--days) * var(--col) + var(--left) + (var(--days) - 1) * var(--gap) + 16px);
+  }
 
   /* 日付ヘッダ（固定） */
   .dates{
@@ -95,6 +100,9 @@
     position:absolute; right:6px; top:6px; border:1px solid var(--bd); background:#fff; border-radius:8px;
     padding:2px 8px; font-size:12px; cursor:pointer;
   }
+  .card .notionLink{
+    position:absolute; right:17px; top:32px; font-size:20px; text-decoration:none; color:#2563eb;
+  }
   .title{ font-weight:600; margin-bottom:4px; padding-right:48px; }
   .meta{ color:var(--muted); font-size:12px; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .pills{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -106,6 +114,7 @@
   .pill.actual{ background:#eef2ff; border-color:#c7d2fe; }
   .pill.remain{ background:#fef2f2; border-color:#fecaca; }
   .pill.contract{ background:#ecfeff; border-color:#a5f3fc; } /* 契約納期用（将来の拡張向け） */
+  .pill.promised_date{ background:#ecfeff; border-color:#a5f3fc; } /* 契約納期用 */
 
   .card.dragging{ opacity:.5 }
   .placeholder{ height:56px; margin-top:8px; border:2px dashed #93c5fd; border-radius:10px; background:#eff6ff; }
@@ -205,6 +214,10 @@
           <label for="f_remain">残時間</label>
           <input type="number" step="0.25" id="f_remain">
         </div>
+        <div>
+          <label for="f_promised_date">顧客と約束した納期</label>
+          <input type="date" id="f_promised_date">
+        </div>
       </div>
       <div class="actions">
         <button class="btn" id="cancel">キャンセル</button>
@@ -226,6 +239,12 @@
   </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const days = parseInt(el('#days').value,10)||14;
+    const oneboxwidth = 300 + 8; // マス幅 + gap
+    document.querySelector('.wrap').style.width = days * oneboxwidth + 220 + 'px'; // マス幅×日数 + 左列幅
+
+  });
 /* ====== ユーティリティ ====== */
 const el = s=>document.querySelector(s);
 const els = s=>Array.from(document.querySelectorAll(s));
@@ -328,6 +347,8 @@ function buildRows(){
     }
     rWrap.appendChild(row);
   }
+
+  document.querySelector('.wrap').style.height = rWrap.clientHeight + 16 + 'px'; // 行数×行高さ + padding
 }
 
 /* ====== カード ====== */
@@ -340,20 +361,48 @@ function makeCard(it){
   card.dataset.assignee=it.assignee_id;
   card.dataset.date=it.date;
 
-  const title = it.task || it.content || '(無題)';
+  const title = it.title || '(無題)';
   const customer = it.customer || '';
-  const plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining);
+  let plan=fmt(it.plan), today=fmt(it.today_plan), actual=fmt(it.actual), remain=fmt(it.remaining), promised_date=it.promised_date ? it.promised_date : '';
+  if(promised_date){
+    // @ を削除
+    const cleanDate = promised_date.replace(/^@/, '').trim();
+    // Dateに変換
+    const pd = new Date(cleanDate);
+    // 年月日形式に変換（NaNチェックも入れとく）
+    if (!isNaN(pd)) {
+      promised_date = `${String(pd.getMonth() + 1).padStart(2, '0')}月${String(pd.getDate()).padStart(2, '0')}日`;
+    }
+  }
+  let notionLink = "http://www.notion.so/native/" + (it.id ? it.id.replace(/-/g, '') : '');
+  let notionLink_task = "";
+  if(it.task_page_id){
+    notionLink_task = "http://www.notion.so/native/" + (it.task_page_id ? it.task_page_id.replace(/-/g, '') : '');
+  }
+  let task = "???";
+  let task_title = it.task || '';
+  if(notionLink_task){
+    task = '<a href="' + notionLink_task + '" target="_blank">' + task_title +'</a>';
+  }else{
+    task = task_title;
+  }
+
+
 
   card.innerHTML=`
     <div class="handle" title="ドラッグ">≡</div>
     <button class="editBtn" type="button">編集</button>
+    <a href="${notionLink}" target="_blank" class="notionLink">▶︎</a>
     <div class="title">${title}</div>
     <div class="meta">${customer}</div>
+    <div class="meta" style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${it.keisananken_title || ''}</div>
+   <div class="meta" style="font-size:10px; color:#9ca3af; margin-bottom:6px;">${task}</div>
     <div class="pills">
       <span class="pill plan">計:${plan}</span>
       <span class="pill today">予:${today}</span>
       <span class="pill actual">実:${actual}</span>
       <span class="pill remain">残:${remain}</span>
+      ${promised_date ? `<span class="pill promised_date">約:${promised_date}</span>` : ''}
     </div>
   `;
   card.querySelector('.editBtn').addEventListener('click', e=>{
@@ -380,6 +429,7 @@ function placeCards(){
     if(!lane) continue;
     lane.appendChild(makeCard(it));
   }
+  document.querySelector('.wrap').style.height = el('#rows').clientHeight + 16 + 'px';
 
   enableLaneDnD();
   recalcSums();
@@ -484,6 +534,7 @@ function openEditor(card){
   el('#f_today').value  = it.today_plan??'';
   el('#f_actual').value = it.actual??'';
   el('#f_remain').value = it.remaining??'';
+  el('#f_promised_date').value = it.promised_date || '';
   el('#modal').classList.add('show');
 }
 function closeEditor(){ el('#modal').classList.remove('show'); editingId=null; }
@@ -499,7 +550,8 @@ el('#save').addEventListener('click', async ()=>{
     plan: numOrNull(el('#f_plan').value),
     today_plan: numOrNull(el('#f_today').value),
     actual: numOrNull(el('#f_actual').value),
-    remaining: numOrNull(el('#f_remain').value)
+    remaining: numOrNull(el('#f_remain').value),
+    promised_date: valOrEmpty(el('#f_promised_date').value)
   };
   await patchCard(payload);
   // ローカル反映
@@ -509,6 +561,7 @@ el('#save').addEventListener('click', async ()=>{
   if(payload.today_plan!==undefined) it.today_plan=payload.today_plan;
   if(payload.actual!==undefined) it.actual=payload.actual;
   if(payload.remaining!==undefined) it.remaining=payload.remaining;
+  if(payload.promised_date!==undefined) it.promised_date=payload.promised_date;
   placeCards(); closeEditor(); showToast('更新しました');
 });
 function valOrEmpty(v){ return (v===''?undefined:v); }

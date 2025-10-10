@@ -92,6 +92,8 @@ foreach(($j['results']??[]) as $pg){
   $kToday    = pick_key($p, ['当日予定'], ['当日','予定']);
   $kActual   = pick_key($p, ['実績'],   ['実績','actual']);
   $kRemain   = pick_key($p, ['残時間'], ['残','remain']);
+  $kpromiseddate = pick_key($p, ['顧客と約束した納期'], ['約束納期','約束日','promised_date']);
+  
 
   // 日付必須（範囲外は捨てる）
   $date = ($kDate && isset($p[$kDate])) ? val($p[$kDate]) : null;
@@ -117,6 +119,7 @@ foreach(($j['results']??[]) as $pg){
     else $task = val($p[$kTask]);
   }
 
+
   $items[] = [
     'id'          => $pg['id'],
     'assignee_id' => $assignee_id,                    // null でも返す（未割当用）
@@ -129,6 +132,12 @@ foreach(($j['results']??[]) as $pg){
     'today_plan'  => ($kToday  && isset($p[$kToday]))  ? floatval(val($p[$kToday]))  : null,
     'actual'      => ($kActual && isset($p[$kActual])) ? floatval(val($p[$kActual])) : null,
     'remain'      => ($kRemain && isset($p[$kRemain])) ? floatval(val($p[$kRemain])) : null,
+    'promised_date' => ($kpromiseddate && isset($p[$kpromiseddate])) ? val($p[$kpromiseddate]) : null,
+    'pgall' => json_encode($pg), // for debug
+    'title' => $p["内容"]["title"][0]["plain_text"]??'', // for debug
+    'keisananken_title' => $p["計算案件"]["formula"]["string"]??'', // for debug  
+    'task_page_id' => $p['タスク']['relation'][0]['id']??'', // for debug
+    
   ];
 }
 
