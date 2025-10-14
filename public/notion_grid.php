@@ -68,25 +68,35 @@ for($i=0;$i<$days;$i++){
   $dates[]=['date'=>$d,'weekday'=>intval($dt->format('w')),'is_holiday'=>false];
   $dt->modify('+1 day');
 }
+// ↓ ここから（既存の $payload ～ $j=json_decode($body,true); の塊を置き換え）
+$results = [];
+$cursor  = null;
 
-$payload=json_encode([
+do {
+  $req = [
     'filter' => [
-        'property' => '日付',
-        'date' => [
-            'on_or_after' => $start,
-        ],
-      ],
-  'page_size'=>100
-], JSON_UNESCAPED_UNICODE);
-list($code,$body)=notion_req("https://api.notion.com/v1/databases/$db/query",$token,$payload);
-if($code!==200){ echo json_encode(['status'=>$code,'error'=>'notion query failed']); exit; }
-$j=json_decode($body,true);
+      'property' => '日付',
+      'date' => [ 'on_or_after' => $start ],
+    ],
+    'page_size' => 100,
+  ];
+  if ($cursor) $req['start_cursor'] = $cursor;
+
+  $payload = json_encode($req, JSON_UNESCAPED_UNICODE);
+  list($code, $body) = notion_req("https://api.notion.com/v1/databases/$db/query", $token, $payload);
+  if ($code !== 200) { echo json_encode(['status'=>$code,'error'=>'notion query failed']); exit; }
+
+  $j = json_decode($body, true);
+  $results = array_merge($results, $j['results'] ?? []);
+  $cursor  = !empty($j['has_more']) ? ($j['next_cursor'] ?? null) : null;
+} while ($cursor);
+// ↑ ここまで
 
 $items=[];            // カード
 $users=[];            // {id,name}
 $userMap=[];          // Notion user id => name（重複防止用）
 
-foreach(($j['results']??[]) as $pg){
+foreach($results as $pg){
   $p=$pg['properties'] ?? [];
 
   // === 列名を DB 実列名で固定 → 無ければ類推 ===
