@@ -120,13 +120,7 @@ foreach(($j['results']??[]) as $pg){
     $users[] = ['id'=>$assignee_id,'name'=>$userMap[$assignee_id]];
   }
 
-  // タスクは relation の場合はページタイトルも解決
-  $task = null;
-  if($kTask && isset($p[$kTask])){
-    if(($p[$kTask]['type']??'')==='relation') $task = relation_titles($p[$kTask],$token);
-    else $task = val($p[$kTask]);
-  }
-
+  $task = $p["タスクロールアップ"]["rollup"]["array"][0]["title"][0]["plain_text"]??'';
 
   $items[] = [
     'id'          => $pg['id'],
