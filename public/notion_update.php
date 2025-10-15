@@ -15,15 +15,36 @@ function notion_req($url,$token,$method='GET',$payload=null){
   $body=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_RESPONSE_CODE); curl_close($ch);
   return [$code,$body];
 }
-function pick_key($props,$cands){
-  foreach($cands as $w){ foreach($props as $name=>$_){ if(mb_strpos($name,$w)!==false) return $name; } }
+
+/** 完全一致優先 + 型で絞る pick_key。型未指定なら従来通りの部分一致にも対応 */
+function pick_key($props, $exacts = [], $fuzzies = [], $type = null){
+  // 1) 完全一致（型も合うなら即採用）
+  foreach($exacts as $name){
+    if(isset($props[$name])){
+      if($type===null || (($props[$name]['type'] ?? null) === $type)){
+        return $name;
+      }
+    }
+  }
+  // 2) 型で絞って部分一致
+  foreach($props as $name => $info){
+    if($type!==null && (($info['type'] ?? null) !== $type)) continue;
+    foreach($fuzzies as $w){
+      if(mb_strpos($name, $w) !== false) return $name;
+    }
+  }
+  // 3) 最後の保険: 同じ型の最初の列（あくまで任意）
+  if($type!==null){
+    foreach($props as $name=>$info){
+      if(($info['type'] ?? null) === $type) return $name;
+    }
+  }
   return null;
 }
-function val($x){
-  if(!is_array($x)||!isset($x['type'])) return null; $t=$x['type'];
-  if($t==='number') return $x['number'];
-  if($t==='date') return $x['date']['start']??null;
-  if($t==='people'){ $u=$x['people'][0]??null; return $u['id']??null; }
+
+function to_number_or_null($v){
+  if($v===null || $v==='') return null;
+  if(is_numeric($v)) return 0 + $v;
   return null;
 }
 
@@ -39,11 +60,11 @@ $id           = $js['id'] ?? null;
 $assignee_id  = $js['assignee_id'] ?? null;
 $date         = $js['date'] ?? null;
 $order        = isset($js['order']) ? intval($js['order']) : null;
-$plan         = isset($js['plan']) ? $js['plan'] : null;
-$today_plan   = isset($js['today_plan']) ? $js['today_plan'] : null;
-$actual       = isset($js['actual']) ? $js['actual'] : null;
-$remain       = isset($js['remain']) ? $js['remain'] : null;
-$promised_date = isset($js['promised_date']) ? $js['promised_date'] : null;
+$plan         = isset($js['plan']) ? to_number_or_null($js['plan']) : null;
+$today_plan   = isset($js['today_plan']) ? to_number_or_null($js['today_plan']) : null;
+$actual       = isset($js['actual']) ? to_number_or_null($js['actual']) : null;
+$remain       = isset($js['remain']) ? to_number_or_null($js['remain']) : null;
+$promised_date = $js['promised_date'] ?? null;
 
 if(!$id){ echo json_encode(['status'=>400,'error'=>'id required']); exit; }
 
@@ -53,18 +74,19 @@ if($c!==200){ http_response_code(500); echo json_encode(['status'=>$c,'error'=>'
 $page=json_decode($b,true);
 $props = $page['properties'] ?? [];
 
-/* ---- resolve keys (Japanese friendly) ---- */
-$kAssignee = pick_key($props, ['担当','社員','assignee']);
-$kDate     = pick_key($props, ['日付','date']);
-$kOrder    = pick_key($props, ['順番','order']);
-$kPlan     = pick_key($props, ['計画']);
-$kToday    = pick_key($props, ['当日予定','今日予定','today']);
-$kActual   = pick_key($props, ['実績']);
-$kRemain   = pick_key($props, ['残時間','残']);
-$kPromisedDate = pick_key($props, ['顧客と約束した納期','約束納期','約束日','promised_date']);
+/* ---- resolve keys (型で厳密に) ---- */
+$kAssignee = pick_key($props, ['担当者','担当'], ['社員','assignee'], 'people');
+$kDate     = pick_key($props, ['日付'],         ['date','日'],        'date');   // ← ここが肝
+$kOrder    = pick_key($props, ['順番'],         ['順','order'],       'number');
+$kPlan     = pick_key($props, ['計画'],         [],                   'number');
+$kToday    = pick_key($props, ['当日予定'],     ['今日予定','today'], 'number');
+$kActual   = pick_key($props, ['実績'],         [],                   'number');
+$kRemain   = pick_key($props, ['残時間','残'],  [],                   'number');
+$kPromisedDate = pick_key($props, ['顧客と約束した納期'], ['約束納期','約束日','promised_date'], 'date');
 
 /* ---- build properties ---- */
 $update = ['properties'=>[]];
+
 if($assignee_id!==null && $kAssignee){
   $update['properties'][$kAssignee] = ['people'=>[['id'=>$assignee_id]]];
 }
